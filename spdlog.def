@@ -1,0 +1,3 @@
+headers = log_ctest.h
+headerFilter = log_ctest.h
+package = spdlog
