@@ -1,4 +1,5 @@
 # Auto generated files
+_build/*
 build/*
 *.slo
 *.lo
