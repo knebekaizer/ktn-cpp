@@ -1,8 +1,20 @@
-class MyClass {
+struct Struct{
+};
+struct Struct s;
+class Class {
+};
+Class c;
+
+class MyClass{
 	int x;
 	void foo();
+	virtual void v_foo();
+	static void s_foo(MyClass* self);
 };
-MyClass mc;
+
+void MyClass::s_foo(MyClass* self) {
+	return self->v_foo();
+}
 
 struct Logger;
 typedef struct Logger Logger;
@@ -13,10 +25,6 @@ extern "C" {
 	
 	Logger* log_create(void);
 	void log_write(Logger* log, const char* msg);
-	
-	const char* cfun(const char*);
-	const signed char* scfun(const signed char*);
-	const unsigned char* ucfun(const unsigned char*);
 
 #ifdef __cplusplus
 } // __cplusplus

@@ -1,0 +1,19 @@
+java -ea -Xmx3G -XX:TieredStopAtLevel=1 -Djava.library.path=/Volumes/work/kotlin-native/dist/konan/nativelib -Dkonan.home=/Volumes/work/kotlin-native/dist -Dfile.encoding=UTF-8 -cp /Volumes/work/kotlin-native/dist/konan/lib/kotlin-compiler.jar:/Volumes/work/kotlin-native/dist/konan/lib/kotlin-stdlib.jar:/Volumes/work/kotlin-native/dist/konan/lib/kotlin-reflect.jar:/Volumes/work/kotlin-native/dist/konan/lib/kotlin-script-runtime.jar:/Volumes/work/kotlin-native/dist/konan/lib/Runtime.jar:/Volumes/work/kotlin-native/dist/konan/lib/StubGenerator.jar:/Volumes/work/kotlin-native/dist/konan/lib/Indexer.jar:/Volumes/work/kotlin-native/dist/konan/lib/backend.native.jar:/Volumes/work/kotlin-native/dist/konan/lib/klib.jar:/Volumes/work/kotlin-native/dist/konan/lib/utilities.jar:/Volumes/work/kotlin-native/dist/konan/lib/shared.jar:/Volumes/work/kotlin-native/dist/konan/lib/konan.metadata.jar:/Volumes/work/kotlin-native/dist/konan/lib/konan.serializer.jar:/Volumes/work/kotlin-native/dist/konan/lib/kotlin-native-utils.jar:/Volumes/work/kotlin-native/dist/konan/lib/trove4j.jar:/Volumes/work/kotlin-native/dist/konan/lib/kotlin-util-io.jar:/Volumes/work/kotlin-native/dist/konan/lib/kotlin-util-klib.jar org.jetbrains.kotlin.cli.utilities.MainKt cinterop
+
+invokeInterop
+interop:38, MainKt
+processCLib
+	buildNativeLibrary
+	-> return NativeLibrary (data class)
+	buildNativeIndexImpl
+		NativeIndexImpl
+		indexDeclarations
+			nativeIndex.library.parse 
+				-> parseTranslationUnit 
+				-> clang_parseTranslationUnit2
+					findMacros
+					expandMacros
+						parseTranslationUnit
+		IndexerResult
+		
+		

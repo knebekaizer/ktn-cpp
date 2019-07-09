@@ -24,7 +24,7 @@ Do it all:
 
     clang++ -c spdlog.cpp log_ctest.cpp  -std=c++14 -Iinclude -DSPDLOG_COMPILED_LIB
     cc ex.c -c
-    cinterop -def spdlog.def -copt -I. -o spdlog
+    cinterop -def spdlog.def -compiler-options -I. -o spdlog
     kotlinc spd_test.kt -o spd_test -l spdlog -linker-options log_ctest.o -linker-options  spdlog.o
 
     $ ./spd_test.kexe 
