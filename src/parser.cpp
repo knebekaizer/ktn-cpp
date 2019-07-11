@@ -9,6 +9,8 @@
 #include "parser.function.hpp"
 #include "parser.util.hpp"
 
+#include "trace.h"
+
 using namespace reflang;
 using namespace std;
 
@@ -41,9 +43,10 @@ namespace
 			for (int i = 0; i != diagnostics; ++i)
 			{
 				auto diag = clang_getDiagnostic(unit, i);
-				cerr << ">>> "
+				log_error << ">>> "
 					<< clang_formatDiagnostic(
 							diag, clang_defaultDiagnosticDisplayOptions());
+				exit(-1);
 			}
 		}
 

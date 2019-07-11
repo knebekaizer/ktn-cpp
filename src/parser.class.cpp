@@ -7,79 +7,94 @@
 using namespace reflang;
 using namespace std;
 
-namespace
+namespace {
+Function getMethodFromCursor(CXCursor cursor)
 {
-	Function GetMethodFromCursor(CXCursor cursor)
-	{
-		auto type = clang_getCursorType(cursor);
+	auto type = clang_getCursorType(cursor);
 
-		Function f(
-                parser::getFile(cursor), parser::getFullName(cursor));
-		f.name = parser::convert(clang_getCursorSpelling(cursor));
-		int num_args = clang_Cursor_getNumArguments(cursor);
-		for (int i = 0; i < num_args; ++i)
-		{
-			auto arg_cursor = clang_Cursor_getArgument(cursor, i);
-			NamedObject arg;
-			arg.name = parser::convert(
-                    clang_getCursorSpelling(arg_cursor));
-			if (arg.name.empty())
-			{
-				arg.name = "nameless";
-			}
-			auto arg_type = clang_getArgType(type, i);
-			arg.type = parser::getName(arg_type);
-			f.arguments.push_back(arg);
+	Function f(
+			parser::getFile(cursor), parser::getFullName(cursor));
+	f.name = parser::convert(clang_getCursorSpelling(cursor));
+	int num_args = clang_Cursor_getNumArguments(cursor);
+	for (int i = 0; i < num_args; ++i) {
+		auto arg_cursor = clang_Cursor_getArgument(cursor, i);
+		NamedObject arg;
+		arg.name = parser::convert(
+				clang_getCursorSpelling(arg_cursor));
+		if (arg.name.empty()) {
+			arg.name = "nameless";
 		}
-
-		f.returnType = parser::getName(clang_getResultType(type));
-		return f;
+		auto arg_type = clang_getArgType(type, i);
+		arg.type = parser::getName(arg_type);
+		f.arguments.push_back(arg);
 	}
 
-	NamedObject GetFieldFromCursor(CXCursor cursor)
-	{
-		NamedObject field;
-		field.name = parser::convert(clang_getCursorSpelling(cursor));
-		field.type = parser::getName(clang_getCursorType(cursor));
-		return field;
-	}
+	f.returnType = parser::getName(clang_getResultType(type));
+	return f;
+}
 
-	CXChildVisitResult VisitClass(
-			CXCursor cursor, CXCursor parent, CXClientData client_data)
-	{
-		auto* c = reinterpret_cast<Class*>(client_data);
-		if (clang_getCXXAccessSpecifier(cursor) == CX_CXXPublic)
-		{
-			switch (clang_getCursorKind(cursor))
-			{
+NamedObject getFieldFromCursor(CXCursor cursor)
+{
+	NamedObject field;
+	field.name = parser::convert(clang_getCursorSpelling(cursor));
+	field.type = parser::getName(clang_getCursorType(cursor));
+	return field;
+}
+
+/*
+CXCursor_Constructor                   = 24,
+CXCursor_Destructor                    = 25,
+CXCursor_ConversionFunction            = 26,
+
+clang_CXXConstructor_isConvertingConstructor(CXCursor C);
+clang_CXXConstructor_isCopyConstructor(CXCursor C);
+clang_CXXConstructor_isDefaultConstructor(CXCursor C);
+clang_CXXConstructor_isMoveConstructor(CXCursor C);
+
+CINDEX_LINKAGE unsigned clang_CXXMethod_isStatic(CXCursor C);
+CINDEX_LINKAGE unsigned clang_CXXMethod_isVirtual(CXCursor C);
+CINDEX_LINKAGE unsigned clang_CXXRecord_isAbstract(CXCursor C);
+
+CINDEX_LINKAGE unsigned clang_CXXMethod_isConst(CXCursor C);
+*/
+
+CXChildVisitResult visitClass(
+		CXCursor cursor, CXCursor parent, CXClientData client_data)
+{
+	auto *c = reinterpret_cast<Class *>(client_data);
+	if (clang_getCXXAccessSpecifier(cursor) == CX_CXXPublic) {
+		switch (clang_getCursorKind(cursor)) {
+			case CXCursor_Constructor:
+				log_info << "ctor " << parser::getFullName(cursor);
+				TraceX(clang_CXXConstructor_isConvertingConstructor(cursor));
+				TraceX(clang_CXXConstructor_isCopyConstructor(cursor));
+				TraceX(clang_CXXConstructor_isDefaultConstructor(cursor));
+				TraceX(clang_CXXConstructor_isMoveConstructor(cursor));
 			case CXCursor_CXXMethod:
-				if (clang_CXXMethod_isStatic(cursor) != 0)
-				{
-					c->staticMethods.push_back(GetMethodFromCursor(cursor));
-				}
-				else
-				{
-					c->methods.push_back(GetMethodFromCursor(cursor));
+				if (clang_CXXMethod_isStatic(cursor) != 0) {
+					c->staticMethods.push_back(getMethodFromCursor(cursor));
+				} else {
+					c->methods.push_back(getMethodFromCursor(cursor));
 				}
 				break;
 			case CXCursor_FieldDecl:
-				c->fields.push_back(GetFieldFromCursor(cursor));
+				c->fields.push_back(getFieldFromCursor(cursor));
 				break;
 			case CXCursor_VarDecl:
-				c->staticFields.push_back(GetFieldFromCursor(cursor));
+				c->staticFields.push_back(getFieldFromCursor(cursor));
 				break;
 			default:
 				break;
-			}
 		}
-		return CXChildVisit_Continue;
 	}
+	return CXChildVisit_Continue;
+}
 }
 
 Class parser::getClass(CXCursor cursor)
 {
 	Class c(getFile(cursor), getFullName(cursor));
-	clang_visitChildren(cursor, VisitClass, &c);
-	log_trace << c;
+	clang_visitChildren(cursor, visitClass, &c);
+	log_trace << "C> " << c;
 	return c;
 }

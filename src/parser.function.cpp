@@ -30,6 +30,6 @@ Function parser::getFunction(CXCursor cursor)
 
 	f.returnType = parser::getName(clang_getResultType(type));
 //	log_trace << f.name << " argc = " << f.Arguments.size();
-    log_trace << f;
+    log_trace << "F> " << f;
 	return f;
 }

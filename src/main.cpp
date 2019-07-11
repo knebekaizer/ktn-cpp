@@ -100,8 +100,13 @@ int main(int argc, char** argv)
 	    char* a[] = {  //! FIXME
 	            "-I/Library//Developer/CommandLineTools/usr/include/c++/v1",
                 "-I/Library//Developer/CommandLineTools/usr/lib/clang/10.0.1/include",
+			    "-I/Library//Developer/CommandLineTools/usr/lib/clang/10.0.0/include",
 	            "-I/Library//Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include",
-                  };
+	            "-I/usr/local/include",
+	            "-I/usr/local/lib/clang/9.0.0/include",
+	            "-I/usr/include",
+
+	    };
 	    argc = sizeof(a) / sizeof(*a);
 
         argv = a;
