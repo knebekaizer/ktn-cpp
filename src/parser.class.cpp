@@ -13,7 +13,8 @@ Function getMethodFromCursor(CXCursor cursor)
 	auto type = clang_getCursorType(cursor);
 
 	Function f(
-			parser::getFile(cursor), parser::getFullName(cursor));
+			parser::getFile(cursor), parser::getFullName(cursor),
+			parser::convert(clang_Cursor_getMangling(cursor)));
 	f.name = parser::convert(clang_getCursorSpelling(cursor));
 	int num_args = clang_Cursor_getNumArguments(cursor);
 	for (int i = 0; i < num_args; ++i) {
@@ -30,6 +31,7 @@ Function getMethodFromCursor(CXCursor cursor)
 	}
 
 	f.returnType = parser::getName(clang_getResultType(type));
+	log_trace << f  << " # " << clang_Cursor_getMangling(cursor);
 	return f;
 }
 
@@ -38,6 +40,7 @@ NamedObject getFieldFromCursor(CXCursor cursor)
 	NamedObject field;
 	field.name = parser::convert(clang_getCursorSpelling(cursor));
 	field.type = parser::getName(clang_getCursorType(cursor));
+	log_trace << field  << " # " << clang_Cursor_getMangling(cursor);
 	return field;
 }
 
@@ -58,6 +61,8 @@ CINDEX_LINKAGE unsigned clang_CXXRecord_isAbstract(CXCursor C);
 CINDEX_LINKAGE unsigned clang_CXXMethod_isConst(CXCursor C);
 */
 
+
+
 CXChildVisitResult visitClass(
 		CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
@@ -65,11 +70,15 @@ CXChildVisitResult visitClass(
 	if (clang_getCXXAccessSpecifier(cursor) == CX_CXXPublic) {
 		switch (clang_getCursorKind(cursor)) {
 			case CXCursor_Constructor:
-				log_info << "ctor " << parser::getFullName(cursor);
-				TraceX(clang_CXXConstructor_isConvertingConstructor(cursor));
-				TraceX(clang_CXXConstructor_isCopyConstructor(cursor));
-				TraceX(clang_CXXConstructor_isDefaultConstructor(cursor));
-				TraceX(clang_CXXConstructor_isMoveConstructor(cursor));
+			//	TraceX(clang_CXXConstructor_isConvertingConstructor(cursor));
+			//	TraceX(clang_CXXConstructor_isCopyConstructor(cursor));
+			//	TraceX(clang_CXXConstructor_isDefaultConstructor(cursor));
+			//	TraceX(clang_CXXConstructor_isMoveConstructor(cursor));
+				c->ctors.push_back(getMethodFromCursor(cursor));
+				break;
+			case CXCursor_Destructor:
+			//	c->dtor = getMethodFromCursor(cursor);
+				break;
 			case CXCursor_CXXMethod:
 				if (clang_CXXMethod_isStatic(cursor) != 0) {
 					c->staticMethods.push_back(getMethodFromCursor(cursor));
@@ -95,6 +104,7 @@ Class parser::getClass(CXCursor cursor)
 {
 	Class c(getFile(cursor), getFullName(cursor));
 	clang_visitChildren(cursor, visitClass, &c);
-	log_trace << "C> " << c;
+	log_trace << "C> " << c << " # " << clang_Cursor_getMangling(cursor);
+
 	return c;
 }

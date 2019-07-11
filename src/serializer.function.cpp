@@ -79,11 +79,11 @@ class Function<%signature%, %name%> : public IFunction
 };
 )";
 
-	o << ReplaceAll(
+	o << replaceAll(
 			tmpl.str(),
 			{
-				{"%name%", f.getFullName()},
-				{"%signature%", serializer::GetFunctionSignature(f)}
+					{"%name%",      f.getFullName()},
+					{"%signature%", serializer::GetFunctionSignature(f)}
 			});
 }
 
@@ -177,15 +177,15 @@ namespace
 }
 )";
 
-	o << ReplaceAll(
+	o << replaceAll(
 			tmpl.str(),
 			{
-				{"%name%", f.getFullName()},
-				{"%signature%", GetFunctionSignature(f)},
-				{"%arg_count%", to_string(f.arguments.size())},
-				{"%return_type%", f.returnType},
-				{"%call_function%", CallFunction(f)},
-				{"%escaped_name%", GetNameWithoutColons(f.getFullName())},
-				{"%unique_id%", GetUniqueSuffixForString(f.getFullName())}
+					{"%name%",          f.getFullName()},
+					{"%signature%",     GetFunctionSignature(f)},
+					{"%arg_count%",     to_string(f.arguments.size())},
+					{"%return_type%",   f.returnType},
+					{"%call_function%", CallFunction(f)},
+					{"%escaped_name%",  getNameWithoutColons(f.getFullName())},
+					{"%unique_id%",     GetUniqueSuffixForString(f.getFullName())}
 			});
 }

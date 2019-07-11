@@ -90,10 +90,10 @@ struct Enum<%name%> : public IEnum
 	bool TryTranslate(int value, std::string& out) override;
 };
 )";
-	o << ReplaceAll(
+	o << replaceAll(
 			tmpl.str(),
 			{
-				{"%name%", e.getFullName()}
+					{"%name%", e.getFullName()}
 			});
 }
 
@@ -362,11 +362,11 @@ namespace
 	} %escaped_name%_instance;
 }
 )";
-	o << ReplaceAll(
+	o << replaceAll(
 			tmpl.str(),
 			{
-				{"%name%", e.getFullName()},
-				{"%unique_values_count%", to_string(unique_values.size())},
-				{"%escaped_name%", GetNameWithoutColons(e.getFullName())}
+					{"%name%",                e.getFullName()},
+					{"%unique_values_count%", to_string(unique_values.size())},
+					{"%escaped_name%",        getNameWithoutColons(e.getFullName())}
 			});
 }

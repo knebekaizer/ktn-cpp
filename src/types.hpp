@@ -27,6 +27,7 @@ namespace reflang
 		const std::string& getName() const;
 
 		const std::string& getFile() const;
+		virtual std::string getCName() const;  //!< C mangling
 
 	private:
 		std::string file_;
@@ -55,10 +56,12 @@ namespace reflang
 	{
 	public:
 	    using Arguments = std::vector<NamedObject>;
-		Function(std::string file, std::string full_name);
+		Function(std::string file, std::string full_name, std::string mangling = "");
 		Type getType() const override;
+		std::string getCName() const override { return mangling; }
 
 		std::string name;
+		const std::string mangling;
         Arguments arguments;
 		std::string returnType;
 	};
@@ -66,12 +69,16 @@ namespace reflang
 	class Class : public TypeBase
 	{
 	public:
+		using Ctors = std::vector<Function>;
 		using Methods = std::vector<Function>;
 		using Fields = std::vector<NamedObject>;
 
 	public:
 		Class(std::string file, std::string full_name);
 		Type getType() const override;
+
+		Ctors ctors;
+	//	Function dtor;
 
 		Methods methods;
 		Methods staticMethods;
@@ -131,5 +138,7 @@ inline std::ostream& operator<<(std::ostream& os, const reflang::Class& c) {
      os << "}\n";
     return os;
 }
+
+struct Unknown const* foo(struct Unknown const*);
 
 #endif //REFLANG_TYPES_HPP

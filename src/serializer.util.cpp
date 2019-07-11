@@ -6,14 +6,21 @@
 using namespace reflang;
 using namespace std;
 
-string serializer::GetNameWithoutColons(string name)
+string serializer::getNameWithoutColons(string name)
 {
 	replace(name.begin(), name.end(), ':', '_');
 	return name;
 }
 
-string serializer::ReplaceAll(
-		const string& text,
+string serializer::mangled(string name)
+{
+	// TODO prefix that
+	replace(name.begin(), name.end(), ':', '_');
+	return name;
+}
+
+string serializer::replaceAll(
+		const string &text,
 		initializer_list<FromToPair> pairs)
 {
 	string result = text;

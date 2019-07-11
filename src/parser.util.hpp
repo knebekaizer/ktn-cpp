@@ -4,6 +4,7 @@
 #include <string>
 
 #include <clang-c/Index.h>
+#include "trace.h"
 
 namespace reflang
 {
@@ -18,6 +19,8 @@ namespace reflang
 		bool isRecursivelyPublic(CXCursor cursor);
 	}
 }
+
+std::ostream& operator<<(std::ostream& os, CXString &&s);
 
 #endif //REFLANG_PARSER_UTIL_HPP
 

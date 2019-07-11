@@ -87,20 +87,6 @@ int main(int argc, char **argv)
 			cout << it << endl;
 		}
 	} else {
-/*	    if (argc) TraceX(argv[0]);
-	    char* a[] = {  //! FIXME
-	            "-I/Library//Developer/CommandLineTools/usr/include/c++/v1",
-                "-I/Library//Developer/CommandLineTools/usr/lib/clang/10.0.1/include",
-			    "-I/Library//Developer/CommandLineTools/usr/lib/clang/10.0.0/include",
-	            "-I/Library//Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include",
-	            "-I/usr/local/include",
-	            "-I/usr/local/lib/clang/9.0.0/include",
-	            "-I/usr/include",
-
-	    };
-	    argc = sizeof(a) / sizeof(*a);
-        argv = a;
-*/
 		auto types = parser::GetTypes(files, argc, argv, options);
 		serializer::Options options;
 		options.include_path = reflang_include->Get();

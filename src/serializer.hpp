@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "types.hpp"
+#include "trace.h"
 
 namespace reflang
 {

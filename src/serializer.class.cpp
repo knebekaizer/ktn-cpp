@@ -49,10 +49,10 @@ public:
 };
 
 )";
-		return serializer::ReplaceAll(
+		return serializer::replaceAll(
 				tmpl.str(),
 				{
-					{"%name%", "&" + c.getFullName() + "::" + m.name},
+						{"%name%", "&" + c.getFullName() + "::" + m.name},
 				});
 	}
 
@@ -148,20 +148,20 @@ Object Method<decltype(%pointer%), %pointer%>::Invoke(
 		tmpl << R"(}
 
 )";
-		return serializer::ReplaceAll(
-			tmpl.str(),
-			{
-				{"%class_name%", c.getFullName()},
-				{"%pointer%", "&" + c.getFullName() + "::" + m.name},
-				{"%name%", m.name},
+		return serializer::replaceAll(
+				tmpl.str(),
 				{
-					"%escaped_name%",
-					serializer::GetNameWithoutColons(
-                            c.getFullName()) + "_" + m.name
-				},
-				{"%param_count%", to_string(m.arguments.size())},
-				{"%call_args%", GetCallArgs(m)}
-			});
+						{"%class_name%",  c.getFullName()},
+						{"%pointer%",     "&" + c.getFullName() + "::" + m.name},
+						{"%name%",        m.name},
+						{
+						 "%escaped_name%",
+						                  serializer::getNameWithoutColons(
+								                  c.getFullName()) + "_" + m.name
+						},
+						{"%param_count%", to_string(m.arguments.size())},
+						{"%call_args%",   GetCallArgs(m)}
+				});
 	}
 
 	string MethodsDefinitions(const Class& c)
@@ -355,18 +355,18 @@ void Class<%name%>::IterateStaticFields(T t)
 %methods_decl%%static_methods_decl%
 )";
 
-	o << ReplaceAll(
+	o << replaceAll(
 			tmpl.str(),
 			{
-				{"%name%", c.getFullName()},
-				{"%iterate_fields%", IterateFields(c)},
-				{"%iterate_static_fields%", IterateStaticFields(c)},
-				{"%field_count%", to_string(c.fields.size())},
-				{"%static_field_count%", to_string(c.staticFields.size())},
-				{"%method_count%", to_string(c.methods.size())},
-				{"%methods_decl%", MethodsDeclarations(c)},
-				{"%static_method_count%", to_string(c.staticMethods.size())},
-				{"%static_methods_decl%", StaticMethodsDeclarations(c)}
+					{"%name%",                  c.getFullName()},
+					{"%iterate_fields%",        IterateFields(c)},
+					{"%iterate_static_fields%", IterateStaticFields(c)},
+					{"%field_count%",           to_string(c.fields.size())},
+					{"%static_field_count%",    to_string(c.staticFields.size())},
+					{"%method_count%",          to_string(c.methods.size())},
+					{"%methods_decl%",          MethodsDeclarations(c)},
+					{"%static_method_count%",   to_string(c.staticMethods.size())},
+					{"%static_methods_decl%",   StaticMethodsDeclarations(c)}
 			});
 }
 
@@ -463,20 +463,20 @@ namespace
 	} %escaped_name%_instance;
 })";
 
-	o << ReplaceAll(
+	o << replaceAll(
 			tmpl.str(),
 			{
-				{"%name%", c.getFullName()},
-				{"%get_field_impl%", GetFieldImpl(c.fields, "o.")},
-				{
-					"%get_static_field_impl%",
-					GetFieldImpl(c.staticFields, c.getFullName() + "::")
-				},
-				{"%field_count%", to_string(c.fields.size())},
-				{"%escaped_name%", GetNameWithoutColons(c.getFullName())},
-				{"%method_definitions%", MethodsDefinitions(c)},
-				{"%get_method_impl%", GetMethodImpl(c)},
-				{"%static_method_definitions%", StaticMethodsDefinitions(c)},
-				{"%get_static_method_impl%", GetStaticMethodImpl(c)}
+					{"%name%",                      c.getFullName()},
+					{"%get_field_impl%",            GetFieldImpl(c.fields, "o.")},
+					{
+					 "%get_static_field_impl%",
+					                                GetFieldImpl(c.staticFields, c.getFullName() + "::")
+					},
+					{"%field_count%",               to_string(c.fields.size())},
+					{"%escaped_name%",              getNameWithoutColons(c.getFullName())},
+					{"%method_definitions%",        MethodsDefinitions(c)},
+					{"%get_method_impl%",           GetMethodImpl(c)},
+					{"%static_method_definitions%", StaticMethodsDefinitions(c)},
+					{"%get_static_method_impl%",    GetStaticMethodImpl(c)}
 			});
 }

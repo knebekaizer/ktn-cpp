@@ -9,7 +9,8 @@ using namespace std;
 
 Function parser::getFunction(CXCursor cursor)
 {
-	Function f(getFile(cursor), getFullName(cursor));
+	Function f(getFile(cursor), getFullName(cursor),
+		parser::convert(clang_Cursor_getMangling(cursor)));
 	auto type = clang_getCursorType(cursor);
 
 	f.name = parser::convert(clang_getCursorSpelling(cursor));
@@ -29,7 +30,6 @@ Function parser::getFunction(CXCursor cursor)
 	}
 
 	f.returnType = parser::getName(clang_getResultType(type));
-//	log_trace << f.name << " argc = " << f.Arguments.size();
     log_trace << "F> " << f;
 	return f;
 }

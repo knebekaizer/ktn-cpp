@@ -7,9 +7,12 @@
 #include "serializer.class.hpp"
 #include "serializer.enum.hpp"
 #include "serializer.function.hpp"
+#include "serializer.util.hpp"
 
 using namespace std;
 using namespace reflang;
+
+std::ostream& genDecl(const Class& c, std::ostream& osC);
 
 namespace
 {
@@ -117,6 +120,7 @@ void serializer::Serialize(
 		const std::vector<std::unique_ptr<TypeBase>>& types,
 		const Options& options)
 {
+TraceF;
 	std::unique_ptr<ofstream> fout_hpp;
 	std::unique_ptr<ofstream> fout_cpp;
 	ostream* out_hpp = &cout;
@@ -148,6 +152,7 @@ void serializer::Serialize(
 			break;
 		case TypeBase::Type::Class:
 			SerializeClassHeader(*out_hpp, static_cast<const Class&>(*type));
+			genDecl(static_cast<const Class&>(*type), std::cout);
 			break;
 		}
 		*out_hpp << "\n\n";
@@ -172,4 +177,48 @@ void serializer::Serialize(
 		*out_cpp << "\n\n";
 	}
 	EndSources(*out_cpp);
+}
+
+#include <unordered_set>
+using namespace serializer;
+
+std::string uniqName(const Class& c, const Function& m) {
+	// quick & dirty:
+	static std::unordered_set<std::string> symbols;
+	auto name = mangled(m.getFullName());
+	int k = 0;
+	auto pos = name.size();
+	while (!symbols.insert(name).second) {
+		name.replace(pos, name.size(), std::to_string(++k));
+	}
+	return name;
+}
+
+
+// non-static method
+std::ostream& genDecl(const Class& c, std::ostream& osC)
+{
+	for (auto& m : c.ctors) {
+		osC << mangled(c.getFullName()) << "* " << uniqName(c, m) << '(';
+//	if (m.isConst()) os << "const ";
+		auto args_left = m.arguments.size();
+		for (auto& a : m.arguments) {
+			osC << mangled(a.type) << " " << a.name;
+			if (--args_left > 0) osC << ", ";
+		}
+		osC << ");\n";
+	}
+
+	for (auto& m : c.methods) {
+		osC << mangled(m.returnType) << ' ' << uniqName(c, m) << '(';
+//	if (m.isConst()) os << "const ";
+		osC << mangled(c.getFullName()) << "* self";
+		auto args_left = m.arguments.size();
+		for (auto& a : m.arguments) {
+			osC << mangled(a.type) << " " << a.name;
+			if (--args_left > 0) osC << ", ";
+		}
+		osC << ");\n";
+	}
+	return osC;
 }
