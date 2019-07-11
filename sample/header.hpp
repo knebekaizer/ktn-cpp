@@ -34,6 +34,7 @@ namespace foo {
 	    Bar(int x, int y);
 	    ~Bar();
         std::vector<int> vec;
+        char* xxx;
         class InnerBar {
         } inner;
     };
