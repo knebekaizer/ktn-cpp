@@ -10,9 +10,13 @@ public:
 	int x;
 	const char v[4] = "abc";
 	void foo();
-	void foo(const TheStruct*) const;
+	void foo(int k, const std::string& s); // overload
+	void foo(int k, std::string& s); // overload, non-const reference
+	void foo(int k, std::string s, Smth const& x); // overload, string by value
+
+	int bar() const;
 	virtual void v_foo();
-	static void s_foo(MyClass* self);
+	static void s_foo(Other Class* smth);
 };
 
 void MyClass::s_foo(MyClass* self) {

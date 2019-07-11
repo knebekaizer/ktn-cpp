@@ -111,7 +111,7 @@ vector<string> parser::GetSupportedTypeNames(
 	return names;
 }
 
-vector<unique_ptr<TypeBase>> parser::GetTypes(
+vector<unique_ptr<TypeBase>> parser::  GetTypes(
 		const std::vector<std::string>& files,
 		int argc, char* argv[],
 		const Options& options)
