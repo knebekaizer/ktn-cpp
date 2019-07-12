@@ -16,12 +16,6 @@ using namespace std;
 
 namespace
 {
-	ostream& operator<<(ostream& s, const CXString& str)
-	{
-		s << parser::convert(str);
-		return s;
-	}
-
 	CXTranslationUnit Parse(
 			CXIndex& index, const string& file, int argc, char* argv[])
 	{
@@ -76,6 +70,16 @@ namespace
 			case CXCursor_FunctionDecl:
 				type = std::make_unique<Function>(parser::getFunction(cursor));
 				break;
+			case CXCursor_VarDecl:
+{
+auto t = clang_getCursorType (cursor);
+log_info << "var " <<  clang_getCursorSpelling(cursor) << "> "
+         << "\n type: " <<  t
+		 << "\n canonical: " << clang_getCanonicalType(t)
+		 << "\n pointee: " << clang_getPointeeType(t)
+         << "\n elemKind: " << clang_getElementType(t) ;
+}
+
 			default:
 				break;
 		}

@@ -53,20 +53,55 @@ namespace foo {
 }
 
 long x;
+	GetTypesVisitor> var x>
+	 type: long.Long
+	 canonical: long.Long
+	 pointee: .Invalid
+	 elemKind: .Invalid
+
 class Unknown;
+
 Unknown* that;
+	GetTypesVisitor> var that>
+	 type: Unknown *.Pointer
+	 canonical: Unknown *.Pointer
+	 pointee: Unknown.Record
+	 elemKind: .Invalid
 
 typedef short u16;
 typedef Unknown* Uuu;
 typedef int A4[4];
 
 u16 y16;
+GetTypesVisitor> var y16>
+ type: u16.Typedef
+ canonical: short.Short
+ pointee: .Invalid
+ elemKind: .Invalid
+
 Uuu unknownPtr;
+	GetTypesVisitor> var unknownPtr>
+	 type: Uuu.Typedef
+	 canonical: Unknown *.Pointer
+	 pointee: .Invalid
+	 elemKind: .Invalid
 
 unsigned char u_chars[10];
+	GetTypesVisitor> var u_chars>
+	 type: unsigned char [10].ConstantArray
+	 canonical: unsigned char [10].ConstantArray
+	 pointee: .Invalid
+	 elemKind: unsigned char.UChar
 
 template <class T> class Vector {};
+
 Vector<A4> A4Vector;
+	GetTypesVisitor> var A4Vector>
+	 type: Vector<A4>.Unexposed
+	 canonical: Vector<int [4]>.Record
+	 pointee: .Invalid
+	 elemKind: .Invalid
+
 
 struct Logger;
 typedef struct Logger Logger;

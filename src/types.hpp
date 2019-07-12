@@ -139,6 +139,4 @@ inline std::ostream& operator<<(std::ostream& os, const reflang::Class& c) {
     return os;
 }
 
-struct Unknown const* foo(struct Unknown const*);
-
 #endif //REFLANG_TYPES_HPP

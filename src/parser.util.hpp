@@ -21,6 +21,8 @@ namespace reflang
 }
 
 std::ostream& operator<<(std::ostream& os, CXString &&s);
+std::ostream &operator<<(std::ostream &os, const CXType& t);
+
 
 #endif //REFLANG_PARSER_UTIL_HPP
 

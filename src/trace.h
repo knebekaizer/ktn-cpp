@@ -73,7 +73,7 @@ enum LOG_LEVEL {trace, debug, info, warn, error, fatal};
 // Compilation: CXXFLAGS=-DDEF_LOG_LEVEL=2 make
 //#define DEF_LOG_LEVEL gLogLevel;  // define this to have runtime option
 #ifndef DEF_LOG_LEVEL
-#define DEF_LOG_LEVEL (LOG_LEVEL::trace)
+#define DEF_LOG_LEVEL (LOG_LEVEL::info)
 #endif
 extern LOG_LEVEL::LOG_LEVEL gLogLevel;
 

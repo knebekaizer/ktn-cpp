@@ -15,6 +15,11 @@ std::ostream &operator<<(std::ostream &os, CXString &&s) {
 	return os;
 }
 
+std::ostream &operator<<(std::ostream &os, const CXType& t) {
+	os << clang_getTypeSpelling(t) << "." << clang_getTypeKindSpelling(t.kind);
+	return os;
+}
+
 
 string parser::getFullName(CXCursor cursor) {
 	string name;

@@ -27,6 +27,8 @@ Function getMethodFromCursor(CXCursor cursor)
 		}
 		auto arg_type = clang_getArgType(type, i);
 		arg.type = parser::getName(arg_type);
+log_info << "Arg " << clang_getTypeSpelling(arg_type) << " " << arg.name << "> " << clang_getTypeKindSpelling(arg_type.kind) << ": "
+<< clang_getTypeSpelling(clang_getPointeeType(arg_type)) << ": " << clang_getTypeKindSpelling(clang_getPointeeType(arg_type).kind);
 		f.arguments.push_back(arg);
 	}
 
@@ -40,26 +42,9 @@ NamedObject getFieldFromCursor(CXCursor cursor)
 	NamedObject field;
 	field.name = parser::convert(clang_getCursorSpelling(cursor));
 	field.type = parser::getName(clang_getCursorType(cursor));
-	log_trace << field  << " # " << clang_Cursor_getMangling(cursor);
+	log_trace << field  << " # " << move(clang_Cursor_getMangling(cursor));
 	return field;
 }
-
-/*
-CXCursor_Constructor                   = 24,
-CXCursor_Destructor                    = 25,
-CXCursor_ConversionFunction            = 26,
-
-clang_CXXConstructor_isConvertingConstructor(CXCursor C);
-clang_CXXConstructor_isCopyConstructor(CXCursor C);
-clang_CXXConstructor_isDefaultConstructor(CXCursor C);
-clang_CXXConstructor_isMoveConstructor(CXCursor C);
-
-CINDEX_LINKAGE unsigned clang_CXXMethod_isStatic(CXCursor C);
-CINDEX_LINKAGE unsigned clang_CXXMethod_isVirtual(CXCursor C);
-CINDEX_LINKAGE unsigned clang_CXXRecord_isAbstract(CXCursor C);
-
-CINDEX_LINKAGE unsigned clang_CXXMethod_isConst(CXCursor C);
-*/
 
 
 
@@ -89,12 +74,20 @@ CXChildVisitResult visitClass(
 			case CXCursor_FieldDecl:
 				c->fields.push_back(getFieldFromCursor(cursor));
 {
-	auto t = clang_getCursorType (cursor);
-	log_trace << clang_getTypeKindSpelling (t.kind);
+auto t = clang_getCursorType (cursor);
+log_info << "Field " << clang_getCursorSpelling(cursor) << "> "
+		 << clang_getTypeSpelling(t) << ": " << clang_getTypeKindSpelling(t.kind) << ": "
+         << clang_getTypeSpelling(clang_getPointeeType(t)) << ": " << clang_getTypeKindSpelling(clang_getPointeeType(t).kind);
 }
 				break;
 			case CXCursor_VarDecl:
 				c->staticFields.push_back(getFieldFromCursor(cursor));
+{
+auto t = clang_getCursorType (cursor);
+log_info << "Static field " << clang_getCursorSpelling(cursor) << "> "
+         << clang_getTypeSpelling(t) << ": " << clang_getTypeKindSpelling(t.kind) << ": "
+         << clang_getTypeSpelling(clang_getPointeeType(t)) << ": " << clang_getTypeKindSpelling(clang_getPointeeType(t).kind);
+}
 				break;
 			default:
 				break;
@@ -113,9 +106,25 @@ Class parser::getClass(CXCursor cursor)
 	return c;
 }
 
+
 /*
 
- log_trace << clang_getTypeKindSpelling (cursor.)
+log_trace << clang_getTypeKindSpelling (cursor.)
+
+CXCursor_Constructor                   = 24,
+CXCursor_Destructor                    = 25,
+CXCursor_ConversionFunction            = 26,
+
+clang_CXXConstructor_isConvertingConstructor(CXCursor C);
+clang_CXXConstructor_isCopyConstructor(CXCursor C);
+clang_CXXConstructor_isDefaultConstructor(CXCursor C);
+clang_CXXConstructor_isMoveConstructor(CXCursor C);
+
+CINDEX_LINKAGE unsigned clang_CXXMethod_isStatic(CXCursor C);
+CINDEX_LINKAGE unsigned clang_CXXMethod_isVirtual(CXCursor C);
+CINDEX_LINKAGE unsigned clang_CXXRecord_isAbstract(CXCursor C);
+
+CINDEX_LINKAGE unsigned clang_CXXMethod_isConst(CXCursor C);
 
 
 CINDEX_LINKAGE CXType 	clang_getCanonicalType (CXType T)
