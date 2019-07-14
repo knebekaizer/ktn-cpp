@@ -1,4 +1,6 @@
 
+namespace ns {
+
 struct TheStruct{
 public:
 	int iPub;
@@ -6,4 +8,6 @@ private:
 	int iPriv;
 };
 
-TheStruct theStruct;
+}
+
+ns::TheStruct theStruct;
