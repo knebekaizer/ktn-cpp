@@ -1,12 +1,37 @@
 #include "serializer.function.hpp"
 
+#include <string>
 #include <sstream>
 #include <unordered_map>
+#include <algorithm>
 
 #include "serializer.util.hpp"
 
 using namespace std;
 using namespace reflang;
+
+string serializer::mangling(string s) {
+	replace(s.begin(), s.end(), ':', '_');
+	return s;
+}
+
+ostream& serializer::genDefinition(ostream& os, const Function& f)
+{
+	os << mangling(f.returnType) << " ";
+	os << mangling(f.getFullName()) << "(";
+	for (auto k = 0; k != f.arguments.size(); ++k) {
+		os << mangling(f.arguments[k].type) << " " << f.arguments[k].name;
+		if (k < f.arguments.size() - 1) os << ", ";
+	}
+	os << ") {\n";
+	os << "return " << f.getFullName() << "(";
+	for (auto k = 0; k != f.arguments.size(); ++k) {
+		os << f.arguments[k].type << " " << f.arguments[k].name;
+		if (k < f.arguments.size() - 1) os << ", ";
+	}
+	os << ");\n}\n";
+	return os;
+}
 
 namespace
 {

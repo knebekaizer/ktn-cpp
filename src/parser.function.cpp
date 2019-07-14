@@ -2,6 +2,7 @@
 
 #include "parser.util.hpp"
 
+#include "serializer.function.hpp"
 #include "trace.h"
 
 using namespace reflang;
@@ -31,5 +32,8 @@ Function parser::getFunction(CXCursor cursor)
 
 	f.returnType = parser::getName(clang_getResultType(type));
     log_trace << "F> " << f;
+	serializer::genDefinition(std::cout, f);
+
 	return f;
 }
+

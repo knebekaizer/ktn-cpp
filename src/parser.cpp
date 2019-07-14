@@ -9,6 +9,8 @@
 #include "parser.function.hpp"
 #include "parser.util.hpp"
 
+#include "serializer.function.hpp"
+
 #include "trace.h"
 
 using namespace reflang;
@@ -120,6 +122,7 @@ vector<unique_ptr<TypeBase>> parser::  GetTypes(
 		int argc, char* argv[],
 		const Options& options)
 {
+//	for (int k=0; k!= argc; ++k) log_trace << argv[k];
 	vector<unique_ptr<TypeBase>> results;
 	for (const auto& file : files)
 	{
