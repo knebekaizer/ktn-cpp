@@ -33,8 +33,8 @@ const std::string ensureUniqName(std::string name) {
 
 
 TypeBase::TypeBase(string file, string full_name)
-	: full_name_(move(full_name))
-	, file_(move(file))
+	: file_(move(file))
+	, full_name_(move(full_name))
 	, mangling_(simpleMangling(full_name_))
 {
 }
@@ -87,8 +87,8 @@ Class::Type Class::getType() const
 }
 
 
-Function::Function(std::string file, std::string full_name)
-		:	TypeBase(move(file), move(full_name))
+Function::Function(std::string file, std::string full_name, const Class* receiver, bool constMember)
+		:	TypeBase(move(file), move(full_name)), memberOf(receiver), isConst(constMember)
 {
 	mangling_ = ensureUniqName(mangling_);
 }
@@ -96,33 +96,4 @@ Function::Function(std::string file, std::string full_name)
 std::string CxxType::asCType() const {
 	// quick-n-dirty mangling, may not work
 	return simpleMangling(type);
-}
-
-
-// Move to serializer namespace
-ostream& genDefinition(ostream& os, const Function& f)
-{
-	os << f.returnType.asCType() << " ";
-
-	os << f.asCName() << "(";
-	for (auto k = 0; k != f.arguments.size(); ++k) {
-		os << f.arguments[k].asCType() << " " << f.arguments[k].name;
-		if (k < f.arguments.size() - 1) os << ", ";
-	}
-	os << ") {\n";
-	os << "return "
-	   // Hidden arg:
-	   //      ((classFullNameWithConstPtr)self)->shortName   // member function
-	   //      fullName                                       // static member or global
-	   << f.getFullName() << "(";
-	auto n = f.arguments.size(); // Awfull. I wish I had python-like join
-	for (auto& a : f.arguments) {
-		// Optional cast to CxxType
-		// if (a.isCastNeeded()) os << "(" << a.asCxxType() << ")"
-		// if LValueReferenceType: os << "*"; // demangling: lvref represented as pointer in C and as value in C++
-		os << a.name;
-		if (--n) os << ", ";
-	}
-	os << ");\n}\n";
-	return os;
 }

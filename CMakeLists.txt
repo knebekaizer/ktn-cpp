@@ -1,4 +1,9 @@
 cmake_minimum_required (VERSION 2.8.7)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror" )
+
+
 project (ktn-cpp)
 enable_testing()
 
@@ -21,7 +26,7 @@ include_directories(${CLANG_INCLUDEDIR})
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-add_library(libreflang STATIC lib/reflang.hpp lib/reflang.cpp)
+add_library(libreflang STATIC lib/reflang.hpp lib/reflang.cpp sample/h1.h)
 
 add_executable(
 	reflang
@@ -37,7 +42,7 @@ add_executable(
 #	src/serializer.enum.cpp src/serializer.enum.hpp
 #	src/serializer.function.cpp src/serializer.function.hpp
 #	src/serializer.util.cpp src/serializer.util.hpp
-	src/types.cpp src/types.hpp)
+	src/types.cpp src/types.hpp src/generator.h src/generator.cpp)
 target_link_libraries(reflang ${CLANG_LIBS})
 
 add_subdirectory(tests)

@@ -3,7 +3,6 @@
 #include "parser.util.hpp"
 #include "types.hpp"
 
-#include "serializer.function.hpp"
 #include "trace.h"
 
 using namespace reflang;
@@ -13,16 +12,18 @@ namespace std {
 std::ostream& operator<<(std::ostream& os, const reflang::Function &f);
 }
 */
-Function parser::getFunction(CXCursor cursor)
+Function parser::buildFunction(CXCursor cursor, const Class* receiver)
 {
 	auto type = clang_getCursorType(cursor);
+	Trace2(type, clang_isConstQualifiedType(type));
+	TraceX(clang_getCanonicalType(type));
 
-	Function f(parser::getFile(cursor), parser::getFullName(cursor));
-	f.name = parser::convert(clang_getCursorSpelling(cursor));
+	Function f(parser::getFile(cursor), parser::getFullName(cursor), receiver, clang_CXXMethod_isConst(cursor));
+	f.name = parser::convertAndDispose(clang_getCursorSpelling(cursor));
 	int num_args = clang_Cursor_getNumArguments(cursor);
 	for (int i = 0; i < num_args; ++i) {
 		auto arg_cursor = clang_Cursor_getArgument(cursor, i);
-		auto name = parser::convert(clang_getCursorSpelling(arg_cursor));
+		auto name = parser::convertAndDispose(clang_getCursorSpelling(arg_cursor));
 		if (name.empty()) {
 			name = "_arg" + std::to_string(i); // TODO make uniq
 		}
@@ -36,7 +37,6 @@ Function parser::getFunction(CXCursor cursor)
 
 	f.returnType = parser::getName(clang_getResultType(type));
 	log_trace << f << " # " << clang_Cursor_getMangling(cursor);
-	genDefinition((cout << endl), f);
 	return f;
 }
 

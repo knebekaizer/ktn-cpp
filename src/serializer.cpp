@@ -120,7 +120,6 @@ void serializer::Serialize(
 		const std::vector<std::unique_ptr<TypeBase>>& types,
 		const Options& options)
 {
-TraceF;
 	std::unique_ptr<ofstream> fout_hpp;
 	std::unique_ptr<ofstream> fout_cpp;
 	ostream* out_hpp = &cout;

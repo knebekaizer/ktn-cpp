@@ -70,7 +70,9 @@ namespace reflang
 		std::string asCType() const;      // ex: Namespace__Class__InnerClass const * foo
 		std::string asCxxType() const { return type; }    // ex: Namespace::Class::InnerClass const & foo
 
-		/*const*/ std::string type;
+		std::string type; // spelling
+		std::string canonicalType;
+		bool isPointerType;
 	};
 
 	struct TypedName : CxxType
@@ -84,17 +86,21 @@ namespace reflang
 		return os << x.asCxxType(); // default printing
 	}
 
+	class Class;
+
 	class Function : public TypeBase
 	{
 	public:
 		using Argument = TypedName;
 	    using Arguments = std::vector<Argument>;
-		Function(std::string file, std::string full_name);
+		Function(std::string file, std::string full_name, const Class* receiver = nullptr, bool constMember = false);
 		Type getType() const override;
 
 		std::string name;
         Arguments arguments;
 		CxxType returnType;
+		const Class* memberOf;           //!< Class pointer for member functions or nullptr for non-members
+		bool isConst;              //!< true for const member function, ignored for static members and free (non-member) functions
 	};
 
 	// Non-static member function
@@ -188,7 +194,5 @@ inline std::ostream& operator<<(std::ostream& os, const reflang::Class& c) {
      os << "}\n";
     return os;
 }
-
-std::ostream& genDefinition(std::ostream& os, const reflang::Function& f);
 
 #endif //REFLANG_TYPES_HPP

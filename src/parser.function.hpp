@@ -9,7 +9,7 @@ namespace reflang
 {
 	namespace parser
 	{
-		Function getFunction(CXCursor cursor);
+		Function buildFunction(CXCursor cursor, const Class* receiver = nullptr);
 	}
 }
 

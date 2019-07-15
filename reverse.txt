@@ -20,4 +20,4 @@ processCLib
 		StubIrBuilder(context).build
 			generateStubsForStruct
 				addStubs
-					bubildgi
+					FunctionStubBuilder.build

@@ -3,7 +3,7 @@
 using namespace std;
 using namespace reflang;
 
-string parser::convert(const CXString &s) {
+string parser::convertAndDispose(const CXString &s) {
 	string result = clang_getCString(s);
 	clang_disposeString(s);
 	return result;
@@ -24,7 +24,7 @@ std::ostream &operator<<(std::ostream &os, const CXType& t) {
 string parser::getFullName(CXCursor cursor) {
 	string name;
 	while (clang_isDeclaration(clang_getCursorKind(cursor)) != 0) {
-		string cur = convert(clang_getCursorSpelling(cursor));
+		string cur = convertAndDispose(clang_getCursorSpelling(cursor));
 		if (name.empty()) {
 			name = cur;
 		} else {
@@ -39,14 +39,14 @@ string parser::getFullName(CXCursor cursor) {
 string parser::getName(const CXType &type) {
 	//TODO: unfortunately, this isn't good enough. It only works as long as the
 	// type is fully qualified.
-	return convert(clang_getTypeSpelling(type));
+	return convertAndDispose(clang_getTypeSpelling(type));
 }
 
 string parser::getFile(const CXCursor &cursor) {
 	auto location = clang_getCursorLocation(cursor);
 	CXFile file;
 	clang_getSpellingLocation(location, &file, nullptr, nullptr, nullptr);
-	return convert(clang_getFileName(file));
+	return convertAndDispose(clang_getFileName(file));
 }
 
 bool parser::isRecursivelyPublic(CXCursor cursor) {
@@ -61,7 +61,7 @@ bool parser::isRecursivelyPublic(CXCursor cursor) {
 		}
 
 		if (clang_getCursorKind(cursor) == CXCursor_Namespace
-		    && convert(clang_getCursorSpelling(cursor)).empty()) {
+		    && convertAndDispose(clang_getCursorSpelling(cursor)).empty()) {
 			// Anonymous namespace.
 			return false;
 		}

@@ -10,7 +10,7 @@ namespace reflang
 {
 	namespace parser
 	{
-		std::string convert(const CXString &s);
+		std::string convertAndDispose(const CXString &s);
 
 		std::string getFullName(CXCursor cursor);
 		std::string getName(const CXType &type);

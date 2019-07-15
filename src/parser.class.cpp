@@ -13,9 +13,9 @@ namespace {
 NamedObject getFieldFromCursor(CXCursor cursor)
 {
 	NamedObject field;
-	field.name = parser::convert(clang_getCursorSpelling(cursor));
+	field.name = parser::convertAndDispose(clang_getCursorSpelling(cursor));
 	field.type = parser::getName(clang_getCursorType(cursor));
-	log_trace << field  << " # " << move(clang_Cursor_getMangling(cursor));
+	log_trace << field  << " # " << clang_Cursor_getMangling(cursor);
 	return field;
 }
 
@@ -32,16 +32,16 @@ CXChildVisitResult visitClass(
 			//	TraceX(clang_CXXConstructor_isCopyConstructor(cursor));
 			//	TraceX(clang_CXXConstructor_isDefaultConstructor(cursor));
 			//	TraceX(clang_CXXConstructor_isMoveConstructor(cursor));
-				c->ctors.push_back(parser::getFunction(cursor));
+				c->ctors.push_back(parser::buildFunction(cursor));
 				break;
 			case CXCursor_Destructor:
 			//	c->dtor = getMethodFromCursor(cursor);
 				break;
 			case CXCursor_CXXMethod:
 				if (clang_CXXMethod_isStatic(cursor) != 0) {
-					c->staticMethods.push_back(parser::getFunction(cursor));
+					c->staticMethods.push_back(parser::buildFunction(cursor));
 				} else {
-					c->methods.push_back(parser::getFunction(cursor));
+					c->methods.push_back(parser::buildFunction(cursor, c));
 				}
 				break;
 			case CXCursor_FieldDecl:

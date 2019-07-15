@@ -12,13 +12,6 @@ string serializer::getNameWithoutColons(string name)
 	return name;
 }
 
-string serializer::mangled(string name)
-{
-	// TODO prefix that
-	replace(name.begin(), name.end(), ':', '_');
-	return name;
-}
-
 string serializer::replaceAll(
 		const string &text,
 		initializer_list<FromToPair> pairs)

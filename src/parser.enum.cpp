@@ -12,7 +12,7 @@ namespace
 	{
 		if (clang_getCursorKind(cursor) == CXCursor_EnumConstantDecl)
 		{
-			string name = parser::convert(clang_getCursorSpelling(cursor));
+			string name = parser::convertAndDispose(clang_getCursorSpelling(cursor));
 			int value = static_cast<int>(clang_getEnumConstantDeclValue(cursor));
 			reinterpret_cast<Enum::Values*>(client_data)->emplace_back(
 					name, value);

@@ -70,6 +70,11 @@ Vector<A4> A4Vector;
 
 struct Logger;
 typedef struct Logger Logger;
+using LoggerPtr = Logger*;
+
+const Logger* myConstLogger;
+LoggerPtr loggerPtr;
+Logger& myLoggerRef = *const_cast<Logger*>(myConstLogger);
 
 #ifdef __cplusplus
 extern "C" {
