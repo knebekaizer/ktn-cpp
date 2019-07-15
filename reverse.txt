@@ -16,4 +16,8 @@ processCLib
 						parseTranslationUnit
 		IndexerResult
 
-		
+	stubIrDriver.run
+		StubIrBuilder(context).build
+			generateStubsForStruct
+				addStubs
+					bubildgi

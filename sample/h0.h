@@ -12,8 +12,8 @@ private:
 	int iPriv;
 };
 
-TheStruct theStruct;
-
 int bar(TheStruct& s);
 
 }
+
+ns::TheStruct theStruct;
