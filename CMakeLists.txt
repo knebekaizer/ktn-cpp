@@ -32,11 +32,11 @@ add_executable(
 	src/parser.enum.cpp src/parser.enum.hpp
 	src/parser.function.cpp src/parser.function.hpp
 	src/parser.util.cpp src/parser.util.hpp
-	src/serializer.class.cpp src/serializer.class.hpp
-	src/serializer.cpp src/serializer.hpp
-	src/serializer.enum.cpp src/serializer.enum.hpp
-	src/serializer.function.cpp src/serializer.function.hpp
-	src/serializer.util.cpp src/serializer.util.hpp
+#	src/serializer.class.cpp src/serializer.class.hpp
+#	src/serializer.cpp src/serializer.hpp
+#	src/serializer.enum.cpp src/serializer.enum.hpp
+#	src/serializer.function.cpp src/serializer.function.hpp
+#	src/serializer.util.cpp src/serializer.util.hpp
 	src/types.cpp src/types.hpp)
 target_link_libraries(reflang ${CLANG_LIBS})
 

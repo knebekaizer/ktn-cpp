@@ -27,11 +27,12 @@ namespace reflang
 		const std::string& getName() const;
 
 		const std::string& getFile() const;
-		virtual std::string getCName() const;  //!< C mangling
+		const std::string& asCName() const;  //!< C mangling
 
-	private:
+	protected:
 		std::string file_;
 		std::string full_name_;
+		std::string mangling_;
 	};
 
 	class Enum : public TypeBase
@@ -88,12 +89,10 @@ namespace reflang
 	public:
 		using Argument = TypedName;
 	    using Arguments = std::vector<Argument>;
-		Function(std::string file, std::string full_name, std::string mangling = "");
+		Function(std::string file, std::string full_name);
 		Type getType() const override;
-		std::string getCName() const override { return mangling; }
 
 		std::string name;
-		const std::string mangling;
         Arguments arguments;
 		CxxType returnType;
 	};
@@ -137,8 +136,18 @@ namespace reflang
 	};
 }
 
+namespace std {
 std::ostream& operator<<(std::ostream& os, const reflang::NamedObject& x);
 std::ostream& operator<<(std::ostream& os, const reflang::Function& f);
+
+template <typename T> std::ostream& operator<<(std::ostream& os, const std::vector<T>& list) {
+	for (auto k = 0; k != list.size(); ++k) {
+		os << list[k];
+		if (k < list.size() - 1) os << ", "; /// FIXME
+	}
+	return os;
+}
+}
 
 template <typename T> std::ostream& prettyPrint(std::ostream& os, const std::vector<T>& list, const std::string& sep = ", ") {
     for (auto k = 0; k != list.size(); ++k) {
@@ -148,20 +157,12 @@ template <typename T> std::ostream& prettyPrint(std::ostream& os, const std::vec
     return os;
 }
 
-template <typename T> std::ostream& operator<<(std::ostream& os, const std::vector<T>& list) {
-    for (auto k = 0; k != list.size(); ++k) {
-        os << list[k];
-        if (k < list.size() - 1) os << ", "; /// FIXME
-    }
-    return os;
+inline std::ostream& std::operator<<(std::ostream& os, const reflang::Function& f) {
+	return os << f.returnType << " " << f.getFullName() << "(" << f.arguments << ")";
 }
 
-inline std::ostream& operator<<(std::ostream& os, const reflang::Function& f) {
-    return os; // << f.returnType << " " << f.getFullName() << "(" << f.arguments << ")";
-}
-
-inline std::ostream& operator<<(std::ostream& os, const reflang::NamedObject& x) {
-    return os << x.type << " " << x.name;
+inline std::ostream& std::operator<<(std::ostream& os, const reflang::NamedObject& x) {
+	return os << x.type << " " << x.name;
 }
 
 inline std::ostream& operator<<(std::ostream& os, const reflang::Class& c) {
@@ -187,5 +188,7 @@ inline std::ostream& operator<<(std::ostream& os, const reflang::Class& c) {
      os << "}\n";
     return os;
 }
+
+std::ostream& genDefinition(std::ostream& os, const reflang::Function& f);
 
 #endif //REFLANG_TYPES_HPP

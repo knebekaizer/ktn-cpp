@@ -10,39 +10,6 @@
 using namespace std;
 using namespace reflang;
 
-string serializer::mangling(string s) {
-	replace(s.begin(), s.end(), ':', '_');
-	replace(s.begin(), s.end(), '&', '*');
-	return s;
-}
-
-
-ostream& serializer::genDefinition(ostream& os, const Function& f)
-{
-	os << f.returnType.asCType() << " ";
-
-	os << mangling(f.getFullName()) << "(";
-	for (auto k = 0; k != f.arguments.size(); ++k) {
-		os << f.arguments[k].asCType() << " " << f.arguments[k].name;
-		if (k < f.arguments.size() - 1) os << ", ";
-	}
-	os << ") {\n";
-	os << "return "
-			   // Hidden arg:
-			   //      ((classFullNameWithConstPtr)self)->shortName   // member function
-			   //      fullName                                       // static member or global
-			<< f.getFullName() << "(";
-	auto n = f.arguments.size(); // Awfull. I wish I had python-like join
-	for (auto& a : f.arguments) {
-		// Optional cast to CxxType
-		// if (a.isCastNeeded()) os << "(" << a.asCxxType() << ")"
-		// if LValueReferenceType: os << "*"; // demangling: lvref represented as pointer in C and as value in C++
-		os << a.name;
-		if (--n) os << ", ";
-	}
-	os << ");\n}\n";
-	return os;
-}
 
 namespace
 {

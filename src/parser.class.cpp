@@ -1,6 +1,7 @@
 #include "parser.class.hpp"
 
 #include "parser.util.hpp"
+#include "parser.function.hpp"
 
 #include "trace.h"
 
@@ -8,33 +9,6 @@ using namespace reflang;
 using namespace std;
 
 namespace {
-Function getMethodFromCursor(CXCursor cursor)
-{
-	auto type = clang_getCursorType(cursor);
-
-	Function f(
-			parser::getFile(cursor), parser::getFullName(cursor),
-			parser::convert(clang_Cursor_getMangling(cursor)));
-	f.name = parser::convert(clang_getCursorSpelling(cursor));
-	int num_args = clang_Cursor_getNumArguments(cursor);
-	for (int i = 0; i < num_args; ++i) {
-		auto arg_cursor = clang_Cursor_getArgument(cursor, i);
-		auto name = parser::convert(clang_getCursorSpelling(arg_cursor));
-		if (name.empty()) {
-			name = "_arg" + std::to_string(i); // TODO make uniq
-		}
-		auto arg_type = clang_getArgType(type, i);
-		auto type = parser::getName(arg_type);
-		Function::Argument arg(type, name);  // TODO isRef, isConst
-log_info << "Arg " << clang_getTypeSpelling(arg_type) << " " << arg.name << "> " << clang_getTypeKindSpelling(arg_type.kind) << ": "
-<< clang_getTypeSpelling(clang_getPointeeType(arg_type)) << ": " << clang_getTypeKindSpelling(clang_getPointeeType(arg_type).kind);
-		f.arguments.push_back(arg);
-	}
-
-	f.returnType = parser::getName(clang_getResultType(type));
-	log_trace << f  << " # " << clang_Cursor_getMangling(cursor);
-	return f;
-}
 
 NamedObject getFieldFromCursor(CXCursor cursor)
 {
@@ -58,16 +32,16 @@ CXChildVisitResult visitClass(
 			//	TraceX(clang_CXXConstructor_isCopyConstructor(cursor));
 			//	TraceX(clang_CXXConstructor_isDefaultConstructor(cursor));
 			//	TraceX(clang_CXXConstructor_isMoveConstructor(cursor));
-				c->ctors.push_back(getMethodFromCursor(cursor));
+				c->ctors.push_back(parser::getFunction(cursor));
 				break;
 			case CXCursor_Destructor:
 			//	c->dtor = getMethodFromCursor(cursor);
 				break;
 			case CXCursor_CXXMethod:
 				if (clang_CXXMethod_isStatic(cursor) != 0) {
-					c->staticMethods.push_back(getMethodFromCursor(cursor));
+					c->staticMethods.push_back(parser::getFunction(cursor));
 				} else {
-					c->methods.push_back(getMethodFromCursor(cursor));
+					c->methods.push_back(parser::getFunction(cursor));
 				}
 				break;
 			case CXCursor_FieldDecl:
