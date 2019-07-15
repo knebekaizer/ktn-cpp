@@ -19,14 +19,13 @@ Function getMethodFromCursor(CXCursor cursor)
 	int num_args = clang_Cursor_getNumArguments(cursor);
 	for (int i = 0; i < num_args; ++i) {
 		auto arg_cursor = clang_Cursor_getArgument(cursor, i);
-		NamedObject arg;
-		arg.name = parser::convert(
-				clang_getCursorSpelling(arg_cursor));
-		if (arg.name.empty()) {
-			arg.name = "nameless";
+		auto name = parser::convert(clang_getCursorSpelling(arg_cursor));
+		if (name.empty()) {
+			name = "_arg" + std::to_string(i); // TODO make uniq
 		}
 		auto arg_type = clang_getArgType(type, i);
-		arg.type = parser::getName(arg_type);
+		auto type = parser::getName(arg_type);
+		Function::Argument arg(type, name);  // TODO isRef, isConst
 log_info << "Arg " << clang_getTypeSpelling(arg_type) << " " << arg.name << "> " << clang_getTypeKindSpelling(arg_type.kind) << ": "
 << clang_getTypeSpelling(clang_getPointeeType(arg_type)) << ": " << clang_getTypeKindSpelling(clang_getPointeeType(arg_type).kind);
 		f.arguments.push_back(arg);
@@ -101,7 +100,7 @@ Class parser::getClass(CXCursor cursor)
 {
 	Class c(getFile(cursor), getFullName(cursor));
 	clang_visitChildren(cursor, visitClass, &c);
-	log_trace << "C> " << c << " # " << clang_Cursor_getMangling(cursor);
+//	log_trace << "C> " << c << " # " << clang_Cursor_getMangling(cursor);
 
 	return c;
 }

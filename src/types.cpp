@@ -61,3 +61,11 @@ Class::Type Class::getType() const
 {
 	return Type::Class;
 }
+
+std::string CxxType::asCType() const {
+	// quick-n-dirty mangling, may not work
+	auto tmp = type;
+	replace(tmp.begin(), tmp.end(), ':', '_');
+	replace(tmp.begin(), tmp.end(), '&', '*');
+	return tmp;
+}

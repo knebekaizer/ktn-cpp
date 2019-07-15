@@ -52,10 +52,42 @@ namespace reflang
 		std::string type;
 	};
 
+	struct CxxType
+	{
+	//	using Kind = CXTypeKind;
+	//	Kind kind;
+		CxxType(const std::string& spelling, bool isRef = false, bool isConst = false)
+			: type(spelling)  {}
+		CxxType() = default;
+		CxxType(const CxxType&) = default;
+		CxxType(CxxType&&) = default;
+		~CxxType() = default;
+		CxxType& operator=(const CxxType&) = default;
+
+		bool isRefType() const { return false; } // not implemented
+		bool isConst() const { return false; } // not implemented
+		std::string asCType() const;      // ex: Namespace__Class__InnerClass const * foo
+		std::string asCxxType() const { return type; }    // ex: Namespace::Class::InnerClass const & foo
+
+		/*const*/ std::string type;
+	};
+
+	struct TypedName : CxxType
+	{
+		TypedName(CxxType&& type, const std::string& n)
+			: CxxType(type), name(n) {}
+		/*const*/ std::string name;
+	};
+
+	inline std::ostream& operator<<(std::ostream& os, CxxType const& x) {
+		return os << x.asCxxType(); // default printing
+	}
+
 	class Function : public TypeBase
 	{
 	public:
-	    using Arguments = std::vector<NamedObject>;
+		using Argument = TypedName;
+	    using Arguments = std::vector<Argument>;
 		Function(std::string file, std::string full_name, std::string mangling = "");
 		Type getType() const override;
 		std::string getCName() const override { return mangling; }
@@ -63,8 +95,25 @@ namespace reflang
 		std::string name;
 		const std::string mangling;
         Arguments arguments;
-		std::string returnType;
+		CxxType returnType;
 	};
+
+	// Non-static member function
+	class Method : public Function
+	{
+		CxxType receiver;
+	};
+
+	// Factory create matching a constructor
+	class Ctor : public Function
+	{
+	};
+
+	// Deleter matching the destructor
+	class Dtor : public Function
+	{
+	};
+
 
 	class Class : public TypeBase
 	{
@@ -108,7 +157,7 @@ template <typename T> std::ostream& operator<<(std::ostream& os, const std::vect
 }
 
 inline std::ostream& operator<<(std::ostream& os, const reflang::Function& f) {
-    return os << f.returnType << " " << f.getFullName() << "(" << f.arguments << ")";
+    return os; // << f.returnType << " " << f.getFullName() << "(" << f.arguments << ")";
 }
 
 inline std::ostream& operator<<(std::ostream& os, const reflang::NamedObject& x) {

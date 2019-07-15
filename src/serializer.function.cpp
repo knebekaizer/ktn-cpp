@@ -12,22 +12,33 @@ using namespace reflang;
 
 string serializer::mangling(string s) {
 	replace(s.begin(), s.end(), ':', '_');
+	replace(s.begin(), s.end(), '&', '*');
 	return s;
 }
 
+
 ostream& serializer::genDefinition(ostream& os, const Function& f)
 {
-	os << mangling(f.returnType) << " ";
+	os << f.returnType.asCType() << " ";
+
 	os << mangling(f.getFullName()) << "(";
 	for (auto k = 0; k != f.arguments.size(); ++k) {
-		os << mangling(f.arguments[k].type) << " " << f.arguments[k].name;
+		os << f.arguments[k].asCType() << " " << f.arguments[k].name;
 		if (k < f.arguments.size() - 1) os << ", ";
 	}
 	os << ") {\n";
-	os << "return " << f.getFullName() << "(";
-	for (auto k = 0; k != f.arguments.size(); ++k) {
-		os << f.arguments[k].type << " " << f.arguments[k].name;
-		if (k < f.arguments.size() - 1) os << ", ";
+	os << "return "
+			   // Hidden arg:
+			   //      ((classFullNameWithConstPtr)self)->shortName   // member function
+			   //      fullName                                       // static member or global
+			<< f.getFullName() << "(";
+	auto n = f.arguments.size(); // Awfull. I wish I had python-like join
+	for (auto& a : f.arguments) {
+		// Optional cast to CxxType
+		// if (a.isCastNeeded()) os << "(" << a.asCxxType() << ")"
+		// if LValueReferenceType: os << "*"; // demangling: lvref represented as pointer in C and as value in C++
+		os << a.name;
+		if (--n) os << ", ";
 	}
 	os << ");\n}\n";
 	return os;
@@ -174,7 +185,7 @@ Object Function<%signature%, %name%>::Invoke(const std::vector<Object>& args)
 	}
 )";
 
-	if (f.returnType == "void")
+	if (f.returnType.type == "void")
 	{
 		tmpl << R"(
 	%call_function%;
@@ -208,7 +219,7 @@ namespace
 					{"%name%",          f.getFullName()},
 					{"%signature%",     GetFunctionSignature(f)},
 					{"%arg_count%",     to_string(f.arguments.size())},
-					{"%return_type%",   f.returnType},
+					{"%return_type%",   f.returnType.type},
 					{"%call_function%", CallFunction(f)},
 					{"%escaped_name%",  getNameWithoutColons(f.getFullName())},
 					{"%unique_id%",     GetUniqueSuffixForString(f.getFullName())}

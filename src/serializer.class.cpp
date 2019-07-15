@@ -134,7 +134,7 @@ Object Method<decltype(%pointer%), %pointer%>::Invoke(
 		throw Exception("Invoke(): bad argument count.");
 	}
 )";
-		if (m.returnType == "void")
+		if (m.returnType.type == "void")
 		{
 			tmpl << R"(	((o.GetT<%class_name%>()).*(%pointer%))(%call_args%);
 	return Object();

@@ -210,7 +210,7 @@ std::ostream& genDecl(const Class& c, std::ostream& osC)
 	}
 
 	for (auto& m : c.methods) {
-		osC << mangled(m.returnType) << ' ' << uniqName(c, m) << '(';
+		osC << m.returnType.asCType() << ' ' << uniqName(c, m) << '(';
 //	if (m.isConst()) os << "const ";
 		osC << mangled(c.getFullName()) << "* self";
 		auto args_left = m.arguments.size();
