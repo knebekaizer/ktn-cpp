@@ -7,8 +7,6 @@
 #include <ostream>
 #include <memory>
 
-namespace reflang {
-
 
 struct CxxType {
 	//	using Kind = CXTypeKind;
@@ -154,12 +152,11 @@ public:
 	Fields fields;
 	Fields staticFields;
 };
-}
 
 namespace std {
-std::ostream& operator<<(std::ostream& os, const reflang::NamedObject& x);
+std::ostream& operator<<(std::ostream& os, const NamedObject& x);
 
-std::ostream& operator<<(std::ostream& os, const reflang::Function& f);
+std::ostream& operator<<(std::ostream& os, const Function& f);
 
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& list) {
@@ -180,15 +177,15 @@ std::ostream& prettyPrint(std::ostream& os, const std::vector<T>& list, const st
 	return os;
 }
 
-inline std::ostream& std::operator<<(std::ostream& os, const reflang::Function& f) {
+inline std::ostream& std::operator<<(std::ostream& os, const Function& f) {
 	return os << f.returnType << " " << f.getFullName() << "(" << f.arguments << ")";
 }
 
-inline std::ostream& std::operator<<(std::ostream& os, const reflang::NamedObject& x) {
+inline std::ostream& std::operator<<(std::ostream& os, const NamedObject& x) {
 	return os << x.type << " " << x.name;
 }
 
-inline std::ostream& operator<<(std::ostream& os, const reflang::Class& c) {
+inline std::ostream& operator<<(std::ostream& os, const Class& c) {
 	os << c.getFullName() << "{\n";
 	if (!c.methods.empty()) {
 		prettyPrint(os, c.methods, ";\n");

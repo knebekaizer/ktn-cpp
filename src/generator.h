@@ -10,27 +10,25 @@
 #include <vector>
 #include <memory>
 
-namespace reflang {
 class TypeBase;
 class Function;
 class Class;
-}
 
 
 namespace generator {
 
 
-std::ostream& genCxxDefinition(std::ostream &os, const reflang::Function& f);
-std::ostream& genCxxDefinition(std::ostream &os, const reflang::Class& c);
+std::ostream& genCxxDefinition(std::ostream &os, const Function& f);
+std::ostream& genCxxDefinition(std::ostream &os, const Class& c);
 
-void genCxxDefinition(std::ostream& os, const std::vector<std::unique_ptr<reflang::TypeBase>>& types);
+void genCxxDefinition(std::ostream& os, const std::vector<std::unique_ptr<TypeBase>>& types);
 
 }
 
 /*
 class WrapperDecl {
 	std::ostringstream os;
-	WrapperDecl& operator<<(const reflang::Function& f) {
+	WrapperDecl& operator<<(const Function& f) {
 		return f.genDecl(os);
 	}
 };

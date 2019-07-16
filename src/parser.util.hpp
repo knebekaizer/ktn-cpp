@@ -6,8 +6,7 @@
 #include <clang-c/Index.h>
 #include "trace.h"
 
-namespace reflang {
-namespace parser {
+namespace ktn {
 
 std::string convertAndDispose(const CXString& s);
 std::string getFullName(CXCursor cursor);
@@ -18,7 +17,7 @@ bool isRecursivelyPublic(CXCursor cursor);
 bool isReference(const CXType& type);
 
 }
-}
+
 
 std::ostream& operator<<(std::ostream& os, CXString&& s);
 

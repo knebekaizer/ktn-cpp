@@ -4,7 +4,6 @@
 
 #include "trace.h"
 
-using namespace reflang;
 using namespace std;
 
 

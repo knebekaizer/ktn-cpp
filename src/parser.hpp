@@ -9,8 +9,7 @@
 
 #include "types.hpp"
 
-namespace reflang {
-namespace parser {
+namespace ktn {
 
 struct Options {
 	std::regex include;
@@ -40,7 +39,6 @@ private:
 	Headers files_;
 };
 
-}
 }
 
 #endif //REFLANG_PARSER_HPP

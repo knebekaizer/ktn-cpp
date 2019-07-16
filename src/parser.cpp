@@ -11,7 +11,6 @@
 
 #include "trace.h"
 
-using namespace reflang;
 using namespace std;
 
 namespace
@@ -79,7 +78,7 @@ CXTranslationUnit Parse(
 struct GetTypesStruct
 {
 	vector<unique_ptr<TypeBase>>* types;
-	const parser::Options* options;
+	const ktn::Options* options;
 };
 
 CXChildVisitResult GetTypesVisitor(
@@ -90,14 +89,14 @@ CXChildVisitResult GetTypesVisitor(
 	switch (clang_getCursorKind(cursor))
 	{
 		case CXCursor_EnumDecl:
-			type = std::make_unique<Enum>(parser::getEnum(cursor));
+			type = std::make_unique<Enum>(ktn::getEnum(cursor));
 			break;
 		case CXCursor_ClassDecl:
 		case CXCursor_StructDecl:
-			type = std::make_unique<Class>(parser::getClass(cursor));
+			type = std::make_unique<Class>(ktn::getClass(cursor));
 			break;
 		case CXCursor_FunctionDecl:
-			type = std::make_unique<Function>(parser::buildFunction(cursor));
+			type = std::make_unique<Function>(ktn::buildFunction(cursor));
 			break;
 		case CXCursor_VarDecl:
 {
@@ -117,7 +116,7 @@ printTypeInfo(cursor);
 	const string& name = type->getFullName();
 	if (type
 			&& !name.empty()
-			&& parser::isRecursivelyPublic(cursor)
+			&& ktn::isRecursivelyPublic(cursor)
 			&& !(name.back() == ':')
 			&& regex_match(name, data->options->include)
 			&& !regex_match(name, data->options->exclude))
@@ -130,7 +129,7 @@ printTypeInfo(cursor);
 
 }  // namespace
 
-vector<string> parser::GetSupportedTypeNames(
+vector<string> ktn::GetSupportedTypeNames(
 		const std::vector<std::string>& files,
 		int argc, char* argv[],
 		const Options& options)
@@ -146,7 +145,7 @@ vector<string> parser::GetSupportedTypeNames(
 	return names;
 }
 
-vector<unique_ptr<TypeBase>> parser::  GetTypes(
+vector<unique_ptr<TypeBase>> ktn::  GetTypes(
 		const std::vector<std::string>& files,
 		int argc, char* argv[],
 		const Options& options)

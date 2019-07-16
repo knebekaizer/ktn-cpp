@@ -5,12 +5,9 @@
 
 #include "types.hpp"
 
-namespace reflang
-{
-	namespace parser
-	{
-		Function buildFunction(CXCursor cursor);
-	}
+namespace ktn {
+Function buildFunction(CXCursor cursor);
 }
+
 
 #endif //REFLANG_PARSER_FUNCTION_HPP

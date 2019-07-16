@@ -5,12 +5,10 @@
 
 #include "types.hpp"
 
-namespace reflang
-{
-	namespace parser
-	{
-		Enum getEnum(CXCursor cursor);
-	}
+namespace ktn {
+
+Enum getEnum(CXCursor cursor);
+
 }
 
 #endif //REFLANG_PARSER_ENUM_HPP

@@ -5,12 +5,10 @@
 
 #include "types.hpp"
 
-namespace reflang
-{
-	namespace parser
-	{
-		Class getClass(CXCursor cursor);
-	}
+namespace ktn {
+
+Class getClass(CXCursor cursor);
+
 }
 
 #endif //REFLANG_PARSER_CLASS_HPP

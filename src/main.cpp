@@ -7,7 +7,6 @@
 
 #include "trace.h"
 
-using namespace reflang;
 using namespace std;
 
 namespace {
@@ -77,18 +76,18 @@ int main(int argc, char **argv)
 
 	vector<string> files = GetFilesToProcess(cmd_args, argc, argv);
 
-	parser::Options options;
+	ktn::Options options;
 	options.include = "^(" + filter_include->Get() + ")$";
 	options.exclude = "^(" + filter_exclude->Get() + ")$";
 
 	if (list_only->Get()) {
-		auto names = parser::GetSupportedTypeNames(files, argc, argv, options);
+		auto names = ktn::GetSupportedTypeNames(files, argc, argv, options);
 		for (const auto &it : names) {
 			cout << it << endl;
 		}
 	} else {
-		auto types = parser::GetTypes(files, argc, argv, options);
-		parser::Options options;
+		auto types = ktn::GetTypes(files, argc, argv, options);
+		ktn::Options options;
 		options.include_path = reflang_include->Get();
 		options.out_hpp_path = out_hpp->Get();
 		options.out_cpp_path = out_cpp->Get();

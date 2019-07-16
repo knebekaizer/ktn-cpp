@@ -11,7 +11,6 @@
 #include "trace.h"
 
 using namespace std;
-using namespace reflang;
 namespace gen = generator;
 
 

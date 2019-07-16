@@ -5,7 +5,6 @@
 
 #include "trace.h"
 
-using namespace reflang;
 using namespace std;
 
 namespace {
@@ -13,8 +12,8 @@ namespace {
 NamedObject getFieldFromCursor(CXCursor cursor)
 {
 	NamedObject field;
-	field.name = parser::convertAndDispose(clang_getCursorSpelling(cursor));
-	field.type = parser::getName(clang_getCursorType(cursor));
+	field.name = ktn::convertAndDispose(clang_getCursorSpelling(cursor));
+	field.type = ktn::getName(clang_getCursorType(cursor));
 	log_trace << field  << " # " << clang_Cursor_getMangling(cursor);
 	return field;
 }
@@ -32,13 +31,13 @@ CXChildVisitResult visitClass(
 			//	TraceX(clang_CXXConstructor_isCopyConstructor(cursor));
 			//	TraceX(clang_CXXConstructor_isDefaultConstructor(cursor));
 			//	TraceX(clang_CXXConstructor_isMoveConstructor(cursor));
-				c->ctors.push_back(parser::buildFunction(cursor));
+				c->ctors.push_back(ktn::buildFunction(cursor));
 				break;
 			case CXCursor_Destructor:
 			//	c->dtor = getMethodFromCursor(cursor);
 				break;
 			case CXCursor_CXXMethod:
-				c->methods.push_back(parser::buildFunction(cursor));
+				c->methods.push_back(ktn::buildFunction(cursor));
 				if (!clang_CXXMethod_isStatic(cursor)) {
 					c->methods.back().setReceiver({c->getFullName(), false, (bool) clang_CXXMethod_isConst(cursor)});
 				}
@@ -69,7 +68,7 @@ log_info << "Static field " << clang_getCursorSpelling(cursor) << "> "
 }
 }
 
-Class parser::getClass(CXCursor cursor)
+Class ktn::getClass(CXCursor cursor)
 {
 	Class c(getFile(cursor), getFullName(cursor));
 	clang_visitChildren(cursor, visitClass, &c);
