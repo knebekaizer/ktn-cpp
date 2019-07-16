@@ -5,148 +5,164 @@
 #include <vector>
 
 #include <ostream>
+#include <memory>
 
-namespace reflang
-{
-	class TypeBase
-	{
-	public:
-		enum class Type
-		{
-			Enum,
-			Function,
-			Class,
-		};
+namespace reflang {
 
-	public:
-		TypeBase(std::string file, std::string full_name);
-		virtual ~TypeBase();
 
-		virtual Type getType() const = 0;
-		const std::string& getFullName() const;
-		const std::string& getName() const;
-
-		const std::string& getFile() const;
-		const std::string& asCName() const;  //!< C mangling
-
-	protected:
-		std::string file_;
-		std::string full_name_;
-		std::string mangling_;
-	};
-
-	class Enum : public TypeBase
-	{
-	public:
-		using Values = std::vector<std::pair<std::string, int>>;
-
-	public:
-		Enum(std::string file, std::string full_name);
-		Type getType() const override;
-
-		Values values;
-	};
-
-	struct NamedObject
-	{
-		std::string name;
-		std::string type;
-	};
-
-	struct CxxType
-	{
+struct CxxType {
 	//	using Kind = CXTypeKind;
 	//	Kind kind;
-		CxxType(const std::string& spelling, bool isRef = false, bool isConst = false)
-			: type(spelling)  {}
-		CxxType() = default;
-		CxxType(const CxxType&) = default;
-		CxxType(CxxType&&) = default;
-		~CxxType() = default;
-		CxxType& operator=(const CxxType&) = default;
+	CxxType(const std::string& spelling, bool ref_ = false, bool const_ = false)
+			: type(spelling), isRef_(ref_), isConst_(const_) {}
 
-		bool isRefType() const { return false; } // not implemented
-		bool isConst() const { return false; } // not implemented
-		std::string asCType() const;      // ex: Namespace__Class__InnerClass const * foo
-		std::string asCxxType() const { return type; }    // ex: Namespace::Class::InnerClass const & foo
+	CxxType() = default;
+	CxxType(const CxxType&) = default;
+	CxxType(CxxType&&) = default;
+	~CxxType() = default;
+	CxxType& operator=(const CxxType&) = default;
+	CxxType& operator=(CxxType&&) = default;
 
-		std::string type; // spelling
-		std::string canonicalType;
-		bool isPointerType;
+	std::string asCType() const;      // ex: Namespace__Class__InnerClass const * foo
+	std::string asCxxType() const { return type; }    // ex: Namespace::Class::InnerClass const & foo
+
+	bool isRef() const { return isRef_; }
+
+	bool isConst() const { return isConst_; }
+
+	std::string type; // spelling name
+	/*
+	shortName    // name in local scope: foo
+	fullName     // qualified: Namespace::Class::foo
+	realName     // canonical
+	cName        // mangling, uniq
+	internalName // mangling, uniq
+		Attr:
+	 isConst
+	 isRef
+	 isPtr
+	 */
+
+private:
+	bool isRef_;
+	bool isConst_;
+};
+
+class TypeBase {
+public:
+	enum class Type {
+		Enum,
+		Function,
+		Class,
 	};
 
-	struct TypedName : CxxType
-	{
-		TypedName(CxxType&& type, const std::string& n)
+public:
+	TypeBase(std::string file, std::string full_name);
+
+	virtual ~TypeBase();
+
+	virtual Type getType() const = 0;
+	const std::string& getFullName() const;
+	const std::string& getName() const;
+	const std::string& getFile() const;
+	const std::string& asCName() const;  //!< C mangling
+
+protected:
+	std::string file_;  // TODO make it link to the global set
+	std::string full_name_;
+	std::string mangling_;
+};
+
+class Enum : public TypeBase {
+public:
+	using Values = std::vector<std::pair<std::string, int>>;
+
+public:
+	Enum(std::string file, std::string full_name);
+
+	Type getType() const override;
+
+	Values values;
+};
+
+struct NamedObject {
+	std::string name;
+	std::string type;
+};
+
+struct TypedName : CxxType {
+	TypedName(const std::string& n, CxxType&& type)
 			: CxxType(type), name(n) {}
-		/*const*/ std::string name;
-	};
 
-	inline std::ostream& operator<<(std::ostream& os, CxxType const& x) {
-		return os << x.asCxxType(); // default printing
-	}
+	/*const*/ std::string name;
+};
 
-	class Class;
+inline std::ostream& operator<<(std::ostream& os, CxxType const& x) {
+	return os << x.asCxxType(); // default printing
+}
 
-	class Function : public TypeBase
-	{
-	public:
-		using Argument = TypedName;
-	    using Arguments = std::vector<Argument>;
-		Function(std::string file, std::string full_name, const Class* receiver = nullptr, bool constMember = false);
-		Type getType() const override;
+class Class;
 
-		std::string name;
-        Arguments arguments;
-		CxxType returnType;
-		const Class* memberOf;           //!< Class pointer for member functions or nullptr for non-members
-		bool isConst;              //!< true for const member function, ignored for static members and free (non-member) functions
-	};
+class Function : public TypeBase {
+public:
+	using Argument = TypedName;
+	using Arguments = std::vector<Argument>;
 
-	// Non-static member function
-	class Method : public Function
-	{
-		CxxType receiver;
-	};
+	Function(std::string file, std::string full_name, bool constMember = false);
 
-	// Factory create matching a constructor
-	class Ctor : public Function
-	{
-	};
+	Type getType() const override;
 
-	// Deleter matching the destructor
-	class Dtor : public Function
-	{
-	};
+	void setReceiver(CxxType&& thiz); // set optional receiver, i.e. class type if the function is non-static class member
+	bool isInstanceMember() const { return receiver ? true : false; }
+
+	std::string name;
+	Arguments arguments;
+	CxxType returnType;
+	std::unique_ptr<CxxType> receiver; // hidden argument
+};
+
+// Non-static member function
+class Method : public Function {
+	CxxType receiver;
+};
+
+// Factory create matching a constructor
+class Ctor : public Function {
+};
+
+// Deleter matching the destructor
+class Dtor : public Function {
+};
 
 
-	class Class : public TypeBase
-	{
-	public:
-		using Ctors = std::vector<Function>;
-		using Methods = std::vector<Function>;
-		using Fields = std::vector<NamedObject>;
+class Class : public TypeBase {
+public:
+	using Ctors = std::vector<Function>;
+	using Methods = std::vector<Function>;
+	using Fields = std::vector<NamedObject>;
 
-	public:
-		Class(std::string file, std::string full_name);
-		Type getType() const override;
+public:
+	Class(std::string file, std::string full_name);
 
-		Ctors ctors;
+	Type getType() const override;
+
+	Ctors ctors;
 	//	Function dtor;
 
-		Methods methods;
-		Methods staticMethods;
+	Methods methods;
 
-		Fields fields;
-		Fields staticFields;
-	};
+	Fields fields;
+	Fields staticFields;
+};
 }
 
 namespace std {
 std::ostream& operator<<(std::ostream& os, const reflang::NamedObject& x);
+
 std::ostream& operator<<(std::ostream& os, const reflang::Function& f);
 
-template <typename T> std::ostream& operator<<(std::ostream& os, const std::vector<T>& list) {
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& list) {
 	for (auto k = 0; k != list.size(); ++k) {
 		os << list[k];
 		if (k < list.size() - 1) os << ", "; /// FIXME
@@ -155,12 +171,13 @@ template <typename T> std::ostream& operator<<(std::ostream& os, const std::vect
 }
 }
 
-template <typename T> std::ostream& prettyPrint(std::ostream& os, const std::vector<T>& list, const std::string& sep = ", ") {
-    for (auto k = 0; k != list.size(); ++k) {
-        os << list[k];
-        if (k < list.size() - 1) os << sep;
-    }
-    return os;
+template<typename T>
+std::ostream& prettyPrint(std::ostream& os, const std::vector<T>& list, const std::string& sep = ", ") {
+	for (auto k = 0; k != list.size(); ++k) {
+		os << list[k];
+		if (k < list.size() - 1) os << sep;
+	}
+	return os;
 }
 
 inline std::ostream& std::operator<<(std::ostream& os, const reflang::Function& f) {
@@ -172,27 +189,22 @@ inline std::ostream& std::operator<<(std::ostream& os, const reflang::NamedObjec
 }
 
 inline std::ostream& operator<<(std::ostream& os, const reflang::Class& c) {
-    os << c.getFullName() << "{\n";
-    if (!c.methods.empty()) {
-        prettyPrint(os, c.methods, ";\n");
-        os << ";\n";
-    }
-    if (!c.fields.empty()) {
-        prettyPrint(os, c.fields, ";\n");
-        os << ";\n";
-    }
-    if (!c.staticFields.empty()) {
-        os << "// @static \n";
-        prettyPrint(os, c.staticFields, ";\n");
-        os << ";\n";
-    }
-    if (!c.staticMethods.empty()) {
-        os << "// @static \n";
-        prettyPrint(os, c.staticMethods, ";\n");
-        os << ";\n";
-    }
-     os << "}\n";
-    return os;
+	os << c.getFullName() << "{\n";
+	if (!c.methods.empty()) {
+		prettyPrint(os, c.methods, ";\n");
+		os << ";\n";
+	}
+	if (!c.fields.empty()) {
+		prettyPrint(os, c.fields, ";\n");
+		os << ";\n";
+	}
+	if (!c.staticFields.empty()) {
+		os << "// @static \n";
+		prettyPrint(os, c.staticFields, ";\n");
+		os << ";\n";
+	}
+	os << "}\n";
+	return os;
 }
 
 #endif //REFLANG_TYPES_HPP

@@ -17,49 +17,49 @@ namespace gen = generator;
 
 ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 {
-	TraceX(f);
-	os << __PRETTY_FUNCTION__ << endl;
-
 	os << f.returnType.asCType() << " ";
 	os << f.asCName() << "(";
 	auto nArgs = f.arguments.size();
-/*
-	if (f.memberOf) {
+
+	if (f.receiver) {
 		// hidden arg
-		os << f.memberOf->asCName();
-		if (f.isConst) os << " const";
+		os << f.receiver->asCType();
+		if (f.receiver->isConst()) os << " const";
 		os << "* self";
 		if (nArgs) os << ", ";
 	}
-*/
+
 	for (const auto& a : f.arguments) {
 		os << a.asCType() << " " << a.name;
 		if (--nArgs > 0) os << ", ";
 	}
 	os << ") {\n";
 	os << "    return ";
-/*
-	if (f.memberOf) {
+
+	if (f.receiver) {
 		// hidden arg
-		os << "((" << f.memberOf->getFullName();
-		if (f.isConst) os << " const";
-		os << "*)self)->" << f.getName();
+		os << "((" << f.receiver->asCxxType();
+		if (f.receiver->isConst()) os << " const";
+		os << "*)self)->";
 	}
-*/
-	os << "(";
+
+	os << f.getName() << "(";
 	auto n = f.arguments.size(); // Awfull. I wish I had python-like join
 	for (auto& a : f.arguments) {
+		if (a.isRef()) os << "*";  // reference parameter was sent as pointer is C wrapper
 		os << a.name;
 		if (--n) os << ", ";
 	}
-	os << ");\n}\n";
+	os << ");\n}";
 
 	return os;
 }
 
-ostream& gen::genCxxDefinition(ostream& os, const Class& c) {
-	TraceX(c.getFullName());
+ostream& gen::genCxxDefinition(ostream& os, const Class& c)
+{
+	os << "// @class " << c.getFullName() << ":\n";
 	for (const Function& f : c.methods) {
+		if (!f.isInstanceMember()) os << "/*static*/ ";
 		genCxxDefinition(os, f);
 		os << '\n';
 	}
@@ -84,7 +84,7 @@ void gen::genCxxDefinition(ostream& os, const std::vector<std::unique_ptr<TypeBa
 				genCxxDefinition(os, static_cast<const Class&>(*type));
 				break;
 		}
-		os << "\n\n";
+		os << "\n";
 	}
 
 }

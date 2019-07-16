@@ -17,6 +17,8 @@ namespace reflang
 		std::string getFile(const CXCursor &cursor);
 
 		bool isRecursivelyPublic(CXCursor cursor);
+
+		bool isReference(const CXType& type);
 	}
 }
 

@@ -71,3 +71,9 @@ bool parser::isRecursivelyPublic(CXCursor cursor) {
 
 	return true;
 }
+
+bool parser::isReference(const CXType& type)
+{
+	return type.kind == CXType_LValueReference || type.kind == CXType_RValueReference;
+}
+

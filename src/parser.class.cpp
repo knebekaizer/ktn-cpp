@@ -38,10 +38,9 @@ CXChildVisitResult visitClass(
 			//	c->dtor = getMethodFromCursor(cursor);
 				break;
 			case CXCursor_CXXMethod:
-				if (clang_CXXMethod_isStatic(cursor) != 0) {
-					c->staticMethods.push_back(parser::buildFunction(cursor));
-				} else {
-					c->methods.push_back(parser::buildFunction(cursor, c));
+				c->methods.push_back(parser::buildFunction(cursor));
+				if (!clang_CXXMethod_isStatic(cursor)) {
+					c->methods.back().setReceiver({c->getFullName(), false, (bool) clang_CXXMethod_isConst(cursor)});
 				}
 				break;
 			case CXCursor_FieldDecl:

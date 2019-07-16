@@ -87,8 +87,8 @@ Class::Type Class::getType() const
 }
 
 
-Function::Function(std::string file, std::string full_name, const Class* receiver, bool constMember)
-		:	TypeBase(move(file), move(full_name)), memberOf(receiver), isConst(constMember)
+Function::Function(std::string file, std::string full_name, bool constMember)
+		:	TypeBase(move(file), move(full_name))
 {
 	mangling_ = ensureUniqName(mangling_);
 }
