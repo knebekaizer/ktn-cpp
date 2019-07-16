@@ -9,8 +9,6 @@
 #include "parser.function.hpp"
 #include "parser.util.hpp"
 
-#include "serializer.function.hpp"
-
 #include "trace.h"
 
 using namespace reflang;

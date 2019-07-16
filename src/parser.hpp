@@ -9,34 +9,38 @@
 
 #include "types.hpp"
 
-namespace reflang
-{
-	namespace parser
-	{
-		struct Options
-		{
-			std::regex include;
-			std::regex exclude;
-		};
+namespace reflang {
+namespace parser {
 
-		std::vector<std::string> GetSupportedTypeNames(
-				const std::vector<std::string>& files,
-				int argc, char* argv[],
-				const Options& options = Options());
+struct Options {
+	std::regex include;
+	std::regex exclude;
 
-		std::vector<std::unique_ptr<TypeBase>> GetTypes(
-				const std::vector<std::string>& files,
-				int argc, char* argv[],
-				const Options& options = Options());
+	std::string include_path;
+	std::string out_hpp_path;
+	std::string out_cpp_path;
+	//TODO: bool standalone = false;
+};
 
-		class Parser {
-		public:
+std::vector<std::string> GetSupportedTypeNames(
+		const std::vector<std::string>& files,
+		int argc, char* argv[],
+		const Options& options = Options());
 
-		private:
-			using Headers = std::unordered_set<std::string>;
-			Headers    files_;
-		};
-	};
+std::vector<std::unique_ptr<TypeBase>> GetTypes(
+		const std::vector<std::string>& files,
+		int argc, char* argv[],
+		const Options& options = Options());
+
+class Parser {
+public:
+
+private:
+	using Headers = std::unordered_set<std::string>;
+	Headers files_;
+};
+
+}
 }
 
 #endif //REFLANG_PARSER_HPP

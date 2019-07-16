@@ -3,7 +3,6 @@
 
 #include "cmdargs.hpp"
 #include "parser.hpp"
-#include "serializer.hpp"
 #include "generator.h"
 
 #include "trace.h"
@@ -89,7 +88,7 @@ int main(int argc, char **argv)
 		}
 	} else {
 		auto types = parser::GetTypes(files, argc, argv, options);
-		serializer::Options options;
+		parser::Options options;
 		options.include_path = reflang_include->Get();
 		options.out_hpp_path = out_hpp->Get();
 		options.out_cpp_path = out_cpp->Get();
