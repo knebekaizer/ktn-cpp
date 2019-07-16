@@ -184,6 +184,7 @@ vector<unique_ptr<TypeBase>> ktn::  GetTypes(
 
 		clang_disposeTranslationUnit(unit);
 		clang_disposeIndex(index);
+		log_debug << "Loaded " << results.size() << " types";
 	}
 	return results;
 }

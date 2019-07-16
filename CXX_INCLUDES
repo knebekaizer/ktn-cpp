@@ -5,3 +5,6 @@
 "-I/usr/local/include"
 "-I/usr/local/lib/clang/9.0.0/include"
 "-I/usr/include"
+
+
+ _build/debug/reflang --headers "/Volumes/vdi/work/cpptools/poco/Foundation/include/**" `ls /Volumes/vdi/work/cpptools/poco/Foundation/include/Poco/*.h* | head` -- "-x" "c++" "-I/Library//Developer/CommandLineTools/usr/include/c++/v1" "-I/Library//Developer/CommandLineTools/usr/lib/clang/10.0.1/include" "-DFoundation_EXPORTS" "-DPCRE_STATIC" "-DPOCO_ENABLE_CPP11" "-DPOCO_ENABLE_CPP14" "-DPOCO_HAVE_IPv6" "-DPOCO_NO_AUTOMATIC_LIBS" "-DPOCO_NO_STAT64" "-DPOCO_OS_FAMILY_UNIX" "-I/Volumes/vdi/work/cpptools/poco/Foundation/include" "-I/Volumes/vdi/work/cpptools/poco/Foundation/src" "-O2" "-g" "-DNDEBUG" "-isysroot" "/Library/Developer/CommandLineTools/SDKs/MacOSX10.14.sdk" "-fPIC" "-std=gnu++14" | tee poco.log
