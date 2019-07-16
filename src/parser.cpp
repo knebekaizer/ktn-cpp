@@ -12,6 +12,7 @@
 #include "trace.h"
 
 using namespace std;
+using namespace ktn;
 
 namespace
 {
@@ -22,6 +23,11 @@ void printTypeInfo(CXCursor cursor) {
 
 	ostringstream tmp;
 
+/*
+printTypeInfo> t = auto.Auto
+printTypeInfo> clang_getCanonicalType(t) = auto.Auto
+printTypeInfo> auto*******************************************
+ ... infinite loop
 	auto derefCount = 0;
 	while ((t = clang_getPointeeType(clang_getCanonicalType(t))).kind != CXType_Invalid) {
 		++derefCount;
@@ -29,14 +35,14 @@ void printTypeInfo(CXCursor cursor) {
 		TraceX(t);
 		TraceX(clang_getCanonicalType(t));
 	}
-
+*/
 /*
 //	clang_getTypedefDeclUnderlyingType (CXCursor C)
 //	clang_getEnumDeclIntegerType (CXCursor C)
 	clang_isPODType (CXType T)
 	clang_Type_getNamedType (CXType T)
 	clang_Type_getCXXRefQualifier (CXType T)
-	log_info << "Var: " <<  clang_getCursorSpelling(cursor) << "> "
+	log_trace << "Var: " <<  clang_getCursorSpelling(cursor) << "> "
 	         << "\n type: " <<  t
 	         << "\n canonical: " << clang_getCanonicalType(t)
 	         << "\n pointee: " << clang_getPointeeType(t)
@@ -84,24 +90,30 @@ struct GetTypesStruct
 CXChildVisitResult GetTypesVisitor(
 		CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
+	// Awfull. FIXME registry
+	static unordered_set<string> types_registry;   // classes & structs
+	static unordered_set<string> symbols_registry; // var & functions
+
 	auto* data = reinterpret_cast<GetTypesStruct*>(client_data);
 	std::unique_ptr<TypeBase> type;
-	switch (clang_getCursorKind(cursor))
-	{
+	switch (clang_getCursorKind(cursor)) {
 		case CXCursor_EnumDecl:
 			type = std::make_unique<Enum>(ktn::getEnum(cursor));
 			break;
 		case CXCursor_ClassDecl:
 		case CXCursor_StructDecl:
+			if (!types_registry.insert(getFullName(cursor)).second) break;  // skip dups
 			type = std::make_unique<Class>(ktn::getClass(cursor));
 			break;
 		case CXCursor_FunctionDecl:
+			if (!symbols_registry.insert( convertAndDispose(clang_Cursor_getMangling(cursor)) ).second) break;  // skip dups
 			type = std::make_unique<Function>(ktn::buildFunction(cursor));
 			break;
 		case CXCursor_VarDecl:
+		//	if (!types_registry.insert( convertAndDispose(clang_Cursor_getMangling(cursor)) ).second) break;  // skip dups
 {
-auto t = clang_getCursorType (cursor);
-log_info << "Var: " <<  clang_getCursorSpelling(cursor) << "> "
+	auto t = clang_getCursorType (cursor);
+log_trace << "Var: " <<  clang_getCursorSpelling(cursor) << "> "
      << "\n type: " <<  t
 	 << "\n canonical: " << clang_getCanonicalType(t)
 	 << "\n pointee: " << clang_getPointeeType(t)
@@ -113,15 +125,23 @@ printTypeInfo(cursor);
 			break;
 	}
 
-	const string& name = type->getFullName();
-	if (type
-			&& !name.empty()
-			&& ktn::isRecursivelyPublic(cursor)
-			&& !(name.back() == ':')
-			&& regex_match(name, data->options->include)
-			&& !regex_match(name, data->options->exclude))
-	{
-		data->types->push_back(std::move(type));
+	WildCard path(data->options->path_filter);
+	if (type && !path.match(type->getFile())) {
+//		log_info << "Rejected by path dismatch: " << type->getFullName();
+//log_info << type->getFullName() << " : " << type->getFile();
+	}
+	if (type) {
+		const string& name = type->getFullName();
+		if (type
+		    && !name.empty()
+		    && ktn::isRecursivelyPublic(cursor)
+		    && !(name.back() == ':')
+		    && path.match(type->getFile())
+		    && regex_match(name, data->options->include)
+		    && !regex_match(name, data->options->exclude))
+		{
+			data->types->push_back(std::move(type));
+		}
 	}
 
 	return CXChildVisit_Recurse;

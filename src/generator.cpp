@@ -4,6 +4,7 @@
 
 #include "generator.h"
 #include "types.hpp"
+#include "parser.util.hpp"
 
 #include <ostream>
 #include <string>
@@ -11,6 +12,7 @@
 #include "trace.h"
 
 using namespace std;
+using namespace ktn;
 namespace gen = generator;
 
 
@@ -56,6 +58,7 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 
 ostream& gen::genCxxDefinition(ostream& os, const Class& c)
 {
+//	TraceX(c.getFile());
 	os << "// @class " << c.getFullName() << ":\n";
 	for (const Function& f : c.methods) {
 		if (!f.isInstanceMember()) os << "/*static*/ ";
@@ -78,12 +81,13 @@ void gen::genCxxDefinition(ostream& os, const std::vector<std::unique_ptr<TypeBa
 				break;
 			case TypeBase::Type::Function:
 				genCxxDefinition(os, static_cast<const Function&>(*type));
+				os << "\n";
 				break;
 			case TypeBase::Type::Class:
 				genCxxDefinition(os, static_cast<const Class&>(*type));
+				os << "\n";
 				break;
 		}
-		os << "\n";
 	}
 
 }

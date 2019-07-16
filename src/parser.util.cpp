@@ -76,3 +76,42 @@ bool ktn::isReference(const CXType& type)
 	return type.kind == CXType_LValueReference || type.kind == CXType_RValueReference;
 }
 
+namespace {
+int wildcmp(const char* wild, const char* string) {
+	const char* cp = 0, * mp = 0;
+
+	while ((*string) && (*wild != '*')) {
+		if ((*wild != *string) && (*wild != '?')) {
+			return 0;
+		}
+		wild++;
+		string++;
+	}
+
+	while (*string) {
+		if (*wild == '*') {
+			if (!*++wild) {
+				return 1;
+			}
+			mp = wild;
+			cp = string + 1;
+		} else if ((*wild == *string) || (*wild == '?')) {
+			wild++;
+			string++;
+		} else {
+			wild = mp;
+			string = cp++;
+		}
+	}
+
+	while (*wild == '*') {
+		wild++;
+	}
+	return !*wild;
+}
+}
+
+bool ktn::WildCard::match(const std::string& s) const {
+	return (bool)wildcmp(wildcard_.c_str(), s.c_str());
+}
+

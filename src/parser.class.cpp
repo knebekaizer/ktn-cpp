@@ -46,7 +46,7 @@ CXChildVisitResult visitClass(
 				c->fields.push_back(getFieldFromCursor(cursor));
 {
 auto t = clang_getCursorType (cursor);
-log_info << "Field " << clang_getCursorSpelling(cursor) << "> "
+log_trace << "Field " << clang_getCursorSpelling(cursor) << "> "
 		 << clang_getTypeSpelling(t) << ": " << clang_getTypeKindSpelling(t.kind) << ": "
          << clang_getTypeSpelling(clang_getPointeeType(t)) << ": " << clang_getTypeKindSpelling(clang_getPointeeType(t).kind);
 }
@@ -55,7 +55,7 @@ log_info << "Field " << clang_getCursorSpelling(cursor) << "> "
 				c->staticFields.push_back(getFieldFromCursor(cursor));
 {
 auto t = clang_getCursorType (cursor);
-log_info << "Static field " << clang_getCursorSpelling(cursor) << "> "
+log_trace << "Static field " << clang_getCursorSpelling(cursor) << "> "
          << clang_getTypeSpelling(t) << ": " << clang_getTypeKindSpelling(t.kind) << ": "
          << clang_getTypeSpelling(clang_getPointeeType(t)) << ": " << clang_getTypeKindSpelling(clang_getPointeeType(t).kind);
 }

@@ -29,7 +29,7 @@ Function ktn::buildFunction(CXCursor cursor)
 		auto arg_type = clang_getArgType(type, i);
 		auto type_name = ktn::getName(arg_type);
 		Function::Argument arg(name, {type_name, isReference(arg_type)});  // TODO isRef, isConst
-		log_info << "Arg " << clang_getTypeSpelling(arg_type) << " " << arg.name << "> " << clang_getTypeKindSpelling(arg_type.kind) << ": "
+		log_trace << "Arg " << clang_getTypeSpelling(arg_type) << " " << arg.name << "> " << clang_getTypeKindSpelling(arg_type.kind) << ": "
 		         << clang_getTypeSpelling(clang_getPointeeType(arg_type)) << ": " << clang_getTypeKindSpelling(clang_getPointeeType(arg_type).kind);
 		f.arguments.push_back(arg);
 	}

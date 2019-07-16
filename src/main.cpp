@@ -3,6 +3,7 @@
 
 #include "cmdargs.hpp"
 #include "parser.hpp"
+#include "parser.util.hpp"
 #include "generator.h"
 
 #include "trace.h"
@@ -51,13 +52,17 @@ int main(int argc, char **argv)
 			"--list-only",
 			"Only list type names, don't generate",
 			false);
+	auto path_filter = cmd_args.Register<string>(
+			"--headers",
+			"path to headers (wildcard) eligible for generation",
+			".*");
 	auto filter_include = cmd_args.Register<string>(
 			"--include",
-			"regex for which types to include in reflection generation",
+			"regex for which types to include in generation",
 			".*");
 	auto filter_exclude = cmd_args.Register<string>(
 			"--exclude",
-			"regex for which types to exclude from reflection generation",
+			"regex for which types to exclude from generation",
 			"std::.*");
 	auto reflang_include = cmd_args.Register<string>(
 			"--reflang-include",
@@ -79,6 +84,7 @@ int main(int argc, char **argv)
 	ktn::Options options;
 	options.include = "^(" + filter_include->Get() + ")$";
 	options.exclude = "^(" + filter_exclude->Get() + ")$";
+	options.path_filter = path_filter->Get();
 
 	if (list_only->Get()) {
 		auto names = ktn::GetSupportedTypeNames(files, argc, argv, options);
@@ -87,6 +93,7 @@ int main(int argc, char **argv)
 		}
 	} else {
 		auto types = ktn::GetTypes(files, argc, argv, options);
+		log_info << "types.size = " << types.size();
 		ktn::Options options;
 		options.include_path = reflang_include->Get();
 		options.out_hpp_path = out_hpp->Get();
@@ -95,3 +102,4 @@ int main(int argc, char **argv)
 	//	serializer::Serialize(types, options);
 	}
 }
+

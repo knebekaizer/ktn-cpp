@@ -14,6 +14,7 @@ namespace ktn {
 struct Options {
 	std::regex include;
 	std::regex exclude;
+	std::string path_filter;  // wildcard pattern
 
 	std::string include_path;
 	std::string out_hpp_path;

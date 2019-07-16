@@ -18,7 +18,11 @@ typedef struct
 
 int bar(TheStruct* s);
 
-struct Inner OtherStruct;
+//#ifdef __cplusplus__
+struct TheStruct::Inner OtherStruct;
+//#else
+//struct Inner OtherStruct;
+//#endif
 
 //}
 /*
