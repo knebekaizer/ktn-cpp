@@ -9,6 +9,8 @@
 #include "parser.function.hpp"
 #include "parser.util.hpp"
 
+#include "generator.h"
+
 #include "trace.h"
 
 using namespace std;
@@ -172,6 +174,7 @@ vector<unique_ptr<TypeBase>> ktn::  GetTypes(
 {
 //	for (int k=0; k!= argc; ++k) log_trace << argv[k];
 	vector<unique_ptr<TypeBase>> results;
+	auto last = 0;
 	for (const auto& file : files)
 	{
 		CXIndex index = clang_createIndex(0, 0);
@@ -184,7 +187,8 @@ vector<unique_ptr<TypeBase>> ktn::  GetTypes(
 
 		clang_disposeTranslationUnit(unit);
 		clang_disposeIndex(index);
-		log_debug << "Loaded " << results.size() << " types";
+	//	log_debug << "Loaded " << results.size() << " types";
+		generator::genCxxDefinition(cout, results.begin() + last, results.end());
 	}
 	return results;
 }

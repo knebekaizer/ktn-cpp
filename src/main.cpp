@@ -98,8 +98,7 @@ int main(int argc, char **argv)
 		options.include_path = reflang_include->Get();
 		options.out_hpp_path = out_hpp->Get();
 		options.out_cpp_path = out_cpp->Get();
-		generator::genCxxDefinition(cout, types);
-	//	serializer::Serialize(types, options);
+	//	generator::genCxxDefinition(cout, types);
 	}
 }
 

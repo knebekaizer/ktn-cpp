@@ -13,6 +13,7 @@
 
 using namespace std;
 using namespace ktn;
+using namespace generator;
 namespace gen = generator;
 
 
@@ -68,6 +69,26 @@ ostream& gen::genCxxDefinition(ostream& os, const Class& c)
 	return os;
 }
 
+void gen::genCxxDefinition(std::ostream& os, Types::const_iterator begin, Types::const_iterator end)
+{
+	for (auto it = begin; it != end; ++it) {
+		switch ((*it)->getType())
+		{
+			case TypeBase::Type::Enum:
+				//	SerializeEnumHeader(*out_hpp, static_cast<const Enum&>(*type));
+				break;
+			case TypeBase::Type::Function:
+				genCxxDefinition(os, static_cast<const Function&>(**it));
+				os << "\n";
+				break;
+			case TypeBase::Type::Class:
+				genCxxDefinition(os, static_cast<const Class&>(**it));
+				os << "\n";
+				break;
+		}
+	}
+
+}
 
 
 void gen::genCxxDefinition(ostream& os, const std::vector<std::unique_ptr<TypeBase>>& types)
@@ -89,5 +110,4 @@ void gen::genCxxDefinition(ostream& os, const std::vector<std::unique_ptr<TypeBa
 				break;
 		}
 	}
-
 }

@@ -21,7 +21,10 @@ namespace generator {
 std::ostream& genCxxDefinition(std::ostream &os, const Function& f);
 std::ostream& genCxxDefinition(std::ostream &os, const Class& c);
 
+using Types = std::vector<std::unique_ptr<TypeBase>>;
 void genCxxDefinition(std::ostream& os, const std::vector<std::unique_ptr<TypeBase>>& types);
+void genCxxDefinition(std::ostream& os, Types::const_iterator begin, Types::const_iterator end);
+
 
 }
 
