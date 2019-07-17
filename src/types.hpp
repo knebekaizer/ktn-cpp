@@ -12,7 +12,7 @@ struct CxxType {
 	//	using Kind = CXTypeKind;
 	//	Kind kind;
 	explicit CxxType(std::string spelling, bool ref_ = false, bool const_ = false)
-			: type(move(spelling)), isRef_(ref_), isConst_(const_) {}
+			: type_name_(move(spelling)), is_ref_(ref_), is_const_(const_) {}
 
 	CxxType() = default;
 	CxxType(const CxxType&) = default;
@@ -22,13 +22,11 @@ struct CxxType {
 	CxxType& operator=(CxxType&&) = default;
 
 	std::string asCType() const;      // ex: Namespace__Class__InnerClass const * foo
-	std::string asCxxType() const { return type; }    // ex: Namespace::Class::InnerClass const & foo
+	std::string asCxxType() const { return type_name_; }    // ex: Namespace::Class::InnerClass const & foo
 
-	bool isRef() const { return isRef_; }
+	bool isRef() const { return is_ref_; }
+	bool isConst() const { return is_const_; }
 
-	bool isConst() const { return isConst_; }
-
-	std::string type; // spelling name
 	/*
 	shortName    // name in local scope: foo
 	fullName     // qualified: Namespace::Class::foo
@@ -43,8 +41,9 @@ struct CxxType {
 	 */
 
 private:
-	bool isRef_;
-	bool isConst_;
+	std::string type_name_; // spelling name
+	bool is_ref_ = false;
+	bool is_const_ = false;
 };
 
 class TypeBase {
