@@ -11,8 +11,15 @@
 struct CxxType {
 	//	using Kind = CXTypeKind;
 	//	Kind kind;
-	explicit CxxType(std::string spelling, bool ref_ = false, bool const_ = false, std::string mangling = "")
-			: type_name_(move(spelling)), ctype_name_(mangling), is_ref_(ref_), is_const_(const_) {}
+	explicit CxxType(std::string spelling, bool ptr_ = false, bool ref_ = false, bool const_ = false,
+			std::string mangling = "", std::string pointee = "")
+			: type_name_(move(spelling))
+			  , ctype_name_(mangling)
+			  , pointee_(pointee)
+			  , is_ptr_(ptr_)
+			  , is_ref_(ref_)
+			  , is_const_(const_)
+			{}
 
 	CxxType() = default;
 	CxxType(const CxxType&) = default;
@@ -25,8 +32,11 @@ struct CxxType {
 	// Or ??? in fact i don't want _any_ temporary strings, even with move semantics
 	std::string asCType() const;      // ex: Namespace__Class__InnerClass const * foo
 	std::string asCxxType() const { return type_name_; }    // ex: Namespace::Class::InnerClass const & foo
+	std::string pointee() const { return pointee_; }
 
 	bool isRef() const { return is_ref_; }
+	bool isPtr() const { return is_ptr_; }
+	bool isPtrOrRef() const { return is_ptr_ || is_ref_; }
 	bool isConst() const { return is_const_; }
 
 	bool isMangled() const { return type_name_ != ctype_name_; } // TODO do it better
@@ -47,7 +57,9 @@ struct CxxType {
 private:
 	std::string type_name_; // spelling name
 	std::string ctype_name_; // mangling
+	std::string pointee_;   // C++ native pointee type
 //	std::unique_ptr<std::string> mangling_;
+	bool is_ptr_ = false;
 	bool is_ref_ = false;
 	bool is_const_ = false;
 };

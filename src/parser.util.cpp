@@ -148,12 +148,14 @@ std::string Function::asCName() const {
  */
 CxxType ktn::buildCxxType(CXType type) {
 	auto canonical = clang_getCanonicalType(type);
-	const CXType& real_type = canonical.kind == CXType_Invalid ? type : canonical;
-	auto is_ref = isRefType_(real_type);
+	auto real_type = canonical.kind == CXType_Invalid ? type : canonical;
+	bool is_ref = isRefType_(real_type);
+	bool is_ptr = real_type.kind == CXType_Pointer;
 	bool is_const = clang_isConstQualifiedType(real_type);
 TraceX(real_type);
 	auto name = getTypeSpelling(type);
 	string cname;
+	string pointee;
 
 	switch (real_type.kind) {
 		case CXType_Elaborated:
@@ -163,14 +165,15 @@ TraceX(real_type);
 		case CXType_Pointer:
 		case CXType_LValueReference:
 		case CXType_RValueReference:  // ???
-			//	auto pointee_type = clang_getPointeeType(type);
-			cname = "void *"; // not my best TODO
+			cname = "void *"; // TODO this is not my best, use opaque C pointer type
+TraceX(clang_getPointeeType(real_type));
+			pointee = getTypeSpelling(clang_getPointeeType(real_type));
 			break;
 		default:
 			break;
 	}
 Trace2(name, cname);
-	return CxxType(name, is_ref, is_const, cname);
+	return CxxType(name, is_ptr, is_ref, is_const, cname, pointee);
 }
 
 CxxType ktn::buildCxxType(CXCursor cursor) {
