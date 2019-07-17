@@ -11,8 +11,8 @@
 struct CxxType {
 	//	using Kind = CXTypeKind;
 	//	Kind kind;
-	explicit CxxType(std::string spelling, bool ref_ = false, bool const_ = false)
-			: type_name_(move(spelling)), is_ref_(ref_), is_const_(const_) {}
+	explicit CxxType(std::string spelling, bool ref_ = false, bool const_ = false, std::string mangling = "")
+			: type_name_(move(spelling)), ctype_name_(mangling), is_ref_(ref_), is_const_(const_) {}
 
 	CxxType() = default;
 	CxxType(const CxxType&) = default;
@@ -29,6 +29,8 @@ struct CxxType {
 	bool isRef() const { return is_ref_; }
 	bool isConst() const { return is_const_; }
 
+	bool isMangled() const { return type_name_ != ctype_name_; } // TODO do it better
+
 	/*
 	shortName    // name in local scope: foo
 	fullName     // qualified: Namespace::Class::foo
@@ -44,6 +46,7 @@ struct CxxType {
 
 private:
 	std::string type_name_; // spelling name
+	std::string ctype_name_; // mangling
 //	std::unique_ptr<std::string> mangling_;
 	bool is_ref_ = false;
 	bool is_const_ = false;
@@ -66,12 +69,10 @@ public:
 	const std::string& fullName() const;
 	const std::string& getName() const;
 	const std::string& getFile() const;
-	const std::string& asCName() const;  //!< C mangling
 
 protected:
 	std::string file_;  // TODO make it link to the global set
 	std::string full_name_;
-	std::string mangling_;
 };
 
 class Enum : public TypeBase {
@@ -116,10 +117,16 @@ public:
 	void setReceiver(CxxType&& thiz); // set optional receiver, i.e. class type if the function is non-static class member
 	bool isInstanceMember() const { return receiver ? true : false; }
 
+	std::string asCName() const;  //!< C mangling
+
 	std::string name;
 	Arguments arguments;
 	CxxType returnType;
 	std::unique_ptr<CxxType> receiver; // hidden argument
+
+
+private:
+	std::string mangling_;
 };
 
 // Non-static member function

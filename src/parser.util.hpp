@@ -16,7 +16,7 @@ std::string getTypeSpelling(const CXType& type);
 std::string getFile(const CXCursor& cursor);
 
 bool isRecursivelyPublic(CXCursor cursor);
-bool isRefType(const CXType& type);
+//bool isRefType(const CXType& type);
 
 
 /*

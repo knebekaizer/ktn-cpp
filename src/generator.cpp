@@ -53,6 +53,7 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 	os << f.getName() << "(";
 	auto n = f.arguments.size(); // Awfull. I wish I had python-like join
 	for (auto& a : f.arguments) {
+		if (a.isMangled()) os << "{" << a.asCxxType() << ")";  // FIXME this is incorrect
 		if (a.isRef()) os << "*";  // reference parameter was sent as pointer is C wrapper
 		os << a.name;
 		if (--n) os << ", ";

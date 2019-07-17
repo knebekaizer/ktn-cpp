@@ -20,7 +20,6 @@ Function ktn::buildFunction(CXCursor cursor)
 	int num_args = clang_Cursor_getNumArguments(cursor);
 	for (int i = 0; i < num_args; ++i) {
 		auto arg_cursor = clang_Cursor_getArgument(cursor, i);
-		TraceX(buildFullName(arg_cursor));
 		auto arg_name = convertAndDispose(clang_getCursorSpelling(arg_cursor));
 		if (arg_name.empty()) {
 			arg_name = "_arg" + std::to_string(i); // TODO make uniq

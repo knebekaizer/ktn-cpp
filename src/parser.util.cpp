@@ -3,6 +3,10 @@
 
 #include <clang-c/Index.h>
 
+#include <string>
+#include <set>
+#include <regex>
+
 
 using namespace std;
 using namespace ktn;
@@ -38,6 +42,7 @@ string ktn::buildFullName(CXCursor cursor) {
 		}
 		cursor = clang_getCursorSemanticParent(cursor);
 	}
+	Trace2( clang_getCursorType(cursor), name );
 
 	return name;
 }
@@ -78,11 +83,61 @@ bool ktn::isRecursivelyPublic(CXCursor cursor) {
 	return true;
 }
 
-bool ktn::isRefType(const CXType& type)
-{
+namespace {
+
+bool isRefType_(CXType type) {
 	return type.kind == CXType_LValueReference || type.kind == CXType_RValueReference;
 }
 
+/*
+bool isPrimType_(CXType type) {
+	static const set<CXTypeKind> prim_types = {
+			CXType_Void, // = 2,
+			CXType_Bool, // = 3,
+			CXType_Char_U, // = 4,
+			CXType_UChar, // = 5,
+			CXType_Char16, // = 6,
+			CXType_Char32, // = 7,
+			CXType_UShort, // = 8,
+			CXType_UInt, // = 9,
+			CXType_ULong, // = 10,
+			CXType_ULongLong, // = 11,
+			CXType_UInt128, // = 12,
+			CXType_Char_S, // = 13,
+			CXType_SChar, // = 14,
+			CXType_WChar, // = 15,
+			CXType_Short, // = 16,
+			CXType_Int, // = 17,
+			CXType_Long, // = 18,
+			CXType_LongLong, // = 19,
+			CXType_Int128, // = 20,
+			CXType_Float, // = 21,
+			CXType_Double, // = 22,
+			CXType_LongDouble, // = 23,
+	};
+	return prim_types.find(type.kind) != prim_types.end();
+}
+*/
+string simpleMangling(string s, const char* prefix = "K2N_") {
+	// sort of uniq (uncommon) prefix
+
+	if (prefix && *prefix) {
+		regex pattern("^(const +)*");
+		s = regex_replace(s, pattern, string("$1") + prefix);
+	}
+
+	replace(s.begin(), s.end(), ':', '_');
+	replace(s.begin(), s.end(), '&', '*');
+	return s;
+}
+
+
+
+}
+
+std::string Function::asCName() const {
+	return simpleMangling(getName());
+}
 
 /*
  * Rationale: why not CxxType(CxType) constructor?
@@ -93,8 +148,29 @@ bool ktn::isRefType(const CXType& type)
  */
 CxxType ktn::buildCxxType(CXType type) {
 	auto canonical = clang_getCanonicalType(type);
-	auto is_ref = isRefType(canonical.kind == CXType_Invalid ? type : canonical);
-	return CxxType(getTypeSpelling(type), is_ref);
+	const CXType& real_type = canonical.kind == CXType_Invalid ? type : canonical;
+	auto is_ref = isRefType_(real_type);
+	bool is_const = clang_isConstQualifiedType(real_type);
+TraceX(real_type);
+	auto name = getTypeSpelling(type);
+	string cname;
+
+	switch (real_type.kind) {
+		case CXType_Elaborated:
+		case CXType_Record:
+			cname = simpleMangling(name);
+			break;
+		case CXType_Pointer:
+		case CXType_LValueReference:
+		case CXType_RValueReference:  // ???
+			//	auto pointee_type = clang_getPointeeType(type);
+			cname = "void *"; // not my best TODO
+			break;
+		default:
+			break;
+	}
+Trace2(name, cname);
+	return CxxType(name, is_ref, is_const, cname);
 }
 
 CxxType ktn::buildCxxType(CXCursor cursor) {

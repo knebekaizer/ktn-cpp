@@ -7,7 +7,7 @@
 
 namespace ktn {
 
-Enum getEnum(CXCursor cursor);
+Enum buildEnum(CXCursor cursor);
 
 }
 

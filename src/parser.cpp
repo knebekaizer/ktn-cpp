@@ -105,7 +105,7 @@ CXChildVisitResult GetTypesVisitor(
 	std::unique_ptr<TypeBase> type;
 	switch (clang_getCursorKind(cursor)) {
 		case CXCursor_EnumDecl:
-			type = std::make_unique<Enum>(ktn::getEnum(cursor));
+			type = std::make_unique<Enum>(ktn::buildEnum(cursor));
 			break;
 		case CXCursor_ClassDecl:
 		case CXCursor_StructDecl:
