@@ -92,11 +92,16 @@ struct GetTypesStruct
 CXChildVisitResult GetTypesVisitor(
 		CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
+
+	auto* data = reinterpret_cast<GetTypesStruct*>(client_data);
+
 	// Awfull. FIXME registry
 	static unordered_set<string> types_registry;   // classes & structs
 	static unordered_set<string> symbols_registry; // var & functions
+	static WildCard path(data->options->path_filter);
 
-	auto* data = reinterpret_cast<GetTypesStruct*>(client_data);
+	if (!path.match(ktn::getFile(cursor))) return CXChildVisit_Recurse;  // filter out "external" types
+
 	std::unique_ptr<TypeBase> type;
 	switch (clang_getCursorKind(cursor)) {
 		case CXCursor_EnumDecl:
@@ -127,7 +132,6 @@ printTypeInfo(cursor);
 			break;
 	}
 
-	WildCard path(data->options->path_filter);
 	if (type && !path.match(type->getFile())) {
 //		log_info << "Rejected by path dismatch: " << type->getFullName();
 //log_info << type->getFullName() << " : " << type->getFile();

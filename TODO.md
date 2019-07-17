@@ -13,6 +13,7 @@ TODO:
 - Forward declaration of proxy types
 - include headers ???
 - map operator<< etc to C functions (this may work)
+- ctors & dtor
 
 Done:
 ----

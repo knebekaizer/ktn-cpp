@@ -3,13 +3,15 @@
 using namespace std;
 
 string ktn::convertAndDispose(const CXString &s) {
-	string result = clang_getCString(s);
+	auto cstr = clang_getCString(s);
+	string result = cstr ? cstr : "";
 	clang_disposeString(s);
 	return result;
 }
 
 std::ostream &operator<<(std::ostream &os, CXString &&s) {
-	os << clang_getCString(s);
+	auto cstr = clang_getCString(s);
+	os << (cstr ? cstr : "");
 	clang_disposeString(s);
 	return os;
 }
@@ -77,7 +79,10 @@ bool ktn::isReference(const CXType& type)
 }
 
 namespace {
-int wildcmp(const char* wild, const char* string) {
+int wildcmp(const char* wild, const char* string)
+{
+	if (!wild || !string) return -1;
+
 	const char* cp = 0, * mp = 0;
 
 	while ((*string) && (*wild != '*')) {
