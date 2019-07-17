@@ -11,6 +11,8 @@ using namespace std;
 namespace {
 
 string simpleMangling(string s) {
+	constexpr char prefix[] = "$_";  // sort of uniq (uncommon) prefix
+	s.insert(0, prefix);
 	replace(s.begin(), s.end(), ':', '_');
 	replace(s.begin(), s.end(), '&', '*');
 	return s;
@@ -39,7 +41,7 @@ TypeBase::TypeBase(string file, string full_name)
 
 TypeBase::~TypeBase() = default;
 
-const string& TypeBase::getFullName() const
+const string& TypeBase::fullName() const
 {
 	return full_name_;
 }

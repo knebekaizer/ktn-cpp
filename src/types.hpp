@@ -11,8 +11,8 @@
 struct CxxType {
 	//	using Kind = CXTypeKind;
 	//	Kind kind;
-	CxxType(const std::string& spelling, bool ref_ = false, bool const_ = false)
-			: type(spelling), isRef_(ref_), isConst_(const_) {}
+	explicit CxxType(std::string spelling, bool ref_ = false, bool const_ = false)
+			: type(move(spelling)), isRef_(ref_), isConst_(const_) {}
 
 	CxxType() = default;
 	CxxType(const CxxType&) = default;
@@ -39,6 +39,7 @@ struct CxxType {
 	 isConst
 	 isRef
 	 isPtr
+	 isCType  // primitive or pointer to CType
 	 */
 
 private:
@@ -60,7 +61,7 @@ public:
 	virtual ~TypeBase();
 
 	virtual Type getType() const = 0;
-	const std::string& getFullName() const;
+	const std::string& fullName() const;
 	const std::string& getName() const;
 	const std::string& getFile() const;
 	const std::string& asCName() const;  //!< C mangling
@@ -178,7 +179,7 @@ std::ostream& prettyPrint(std::ostream& os, const std::vector<T>& list, const st
 }
 
 inline std::ostream& std::operator<<(std::ostream& os, const Function& f) {
-	return os << f.returnType << " " << f.getFullName() << "(" << f.arguments << ")";
+	return os << f.returnType << " " << f.fullName() << "(" << f.arguments << ")";
 }
 
 inline std::ostream& std::operator<<(std::ostream& os, const NamedObject& x) {
@@ -186,7 +187,7 @@ inline std::ostream& std::operator<<(std::ostream& os, const NamedObject& x) {
 }
 
 inline std::ostream& operator<<(std::ostream& os, const Class& c) {
-	os << c.getFullName() << "{\n";
+	os << c.fullName() << "{\n";
 	if (!c.methods.empty()) {
 		prettyPrint(os, c.methods, ";\n");
 		os << ";\n";

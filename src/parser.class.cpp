@@ -13,7 +13,7 @@ NamedObject getFieldFromCursor(CXCursor cursor)
 {
 	NamedObject field;
 	field.name = ktn::convertAndDispose(clang_getCursorSpelling(cursor));
-	field.type = ktn::getName(clang_getCursorType(cursor));
+	field.type = ktn::getTypeSpelling(clang_getCursorType(cursor));
 	log_trace << field  << " # " << clang_Cursor_getMangling(cursor);
 	return field;
 }
@@ -23,7 +23,7 @@ NamedObject getFieldFromCursor(CXCursor cursor)
 CXChildVisitResult visitClass(
 		CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
-	auto *c = reinterpret_cast<Class *>(client_data);
+	auto *clazz = reinterpret_cast<Class *>(client_data);
 	if (clang_getCXXAccessSpecifier(cursor) == CX_CXXPublic) {
 		switch (clang_getCursorKind(cursor)) {
 			case CXCursor_Constructor:
@@ -31,19 +31,19 @@ CXChildVisitResult visitClass(
 			//	TraceX(clang_CXXConstructor_isCopyConstructor(cursor));
 			//	TraceX(clang_CXXConstructor_isDefaultConstructor(cursor));
 			//	TraceX(clang_CXXConstructor_isMoveConstructor(cursor));
-				c->ctors.push_back(ktn::buildFunction(cursor));
+				clazz->ctors.push_back(ktn::buildFunction(cursor));
 				break;
 			case CXCursor_Destructor:
-			//	c->dtor = getMethodFromCursor(cursor);
+			//	clazz->dtor = getMethodFromCursor(cursor);
 				break;
 			case CXCursor_CXXMethod:
-				c->methods.push_back(ktn::buildFunction(cursor));
+				clazz->methods.push_back(ktn::buildFunction(cursor));
 				if (!clang_CXXMethod_isStatic(cursor)) {
-					c->methods.back().setReceiver({c->getFullName(), false, (bool) clang_CXXMethod_isConst(cursor)});
+					clazz->methods.back().setReceiver( CxxType(clazz->fullName(), false, (bool)clang_CXXMethod_isConst(cursor)) );
 				}
 				break;
 			case CXCursor_FieldDecl:
-				c->fields.push_back(getFieldFromCursor(cursor));
+				clazz->fields.push_back(getFieldFromCursor(cursor));
 {
 auto t = clang_getCursorType (cursor);
 log_trace << "Field " << clang_getCursorSpelling(cursor) << "> "
@@ -52,7 +52,7 @@ log_trace << "Field " << clang_getCursorSpelling(cursor) << "> "
 }
 				break;
 			case CXCursor_VarDecl:
-				c->staticFields.push_back(getFieldFromCursor(cursor));
+				clazz->staticFields.push_back(getFieldFromCursor(cursor));
 {
 auto t = clang_getCursorType (cursor);
 log_trace << "Static field " << clang_getCursorSpelling(cursor) << "> "
@@ -68,9 +68,9 @@ log_trace << "Static field " << clang_getCursorSpelling(cursor) << "> "
 }
 }
 
-Class ktn::getClass(CXCursor cursor)
+Class ktn::buildClass(CXCursor cursor)
 {
-	Class c(getFile(cursor), getFullName(cursor));
+	Class c(getFile(cursor), buildFullName(cursor));
 	clang_visitChildren(cursor, visitClass, &c);
 //	log_trace << "C> " << c << " # " << clang_Cursor_getMangling(cursor);
 

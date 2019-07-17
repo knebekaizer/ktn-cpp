@@ -31,7 +31,7 @@ namespace
 
 Enum ktn::getEnum(CXCursor cursor)
 {
-	Enum e(getFile(cursor), getFullName(cursor));
+	Enum e(getFile(cursor), buildFullName(cursor));
 	e.values = GetEnumValues(cursor);
 	return e;
 }

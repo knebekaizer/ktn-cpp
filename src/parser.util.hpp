@@ -9,12 +9,12 @@
 namespace ktn {
 
 std::string convertAndDispose(const CXString& s);
-std::string getFullName(CXCursor cursor);
-std::string getName(const CXType& type);
+std::string buildFullName(CXCursor cursor);
+std::string getTypeSpelling(const CXType& type);
 std::string getFile(const CXCursor& cursor);
 
 bool isRecursivelyPublic(CXCursor cursor);
-bool isReference(const CXType& type);
+bool isRefType(const CXType& type);
 
 
 class WildCard {

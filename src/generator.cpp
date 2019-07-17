@@ -38,6 +38,11 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 	os << ") {\n";
 	os << "    return ";
 
+	// This may be skipped if C and C++ return types are the same
+	os << "(" << f.returnType.asCType() << ") ";
+
+	if (f.returnType.isRef())  os << "*";  // return reference as pointer:
+
 	if (f.receiver) {
 		// hidden arg
 		os << "((" << f.receiver->asCxxType();
@@ -60,7 +65,7 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 ostream& gen::genCxxDefinition(ostream& os, const Class& c)
 {
 //	TraceX(c.getFile());
-	os << "// @class " << c.getFullName() << ":\n";
+	os << "// @class " << c.fullName() << ":\n";
 	for (const Function& f : c.methods) {
 		if (!f.isInstanceMember()) os << "/*static*/ ";
 		genCxxDefinition(os, f);

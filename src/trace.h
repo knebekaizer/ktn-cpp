@@ -67,22 +67,32 @@ inline std::string hexdump(const void* const buf, size_t len)
 //#endif // NDEBUG
 
 namespace LOG_LEVEL {
-enum LOG_LEVEL {trace, debug, info, warn, error, fatal};
+enum LOG_LEVEL {none = 0, fatal, error, warn, info, debug, trace};
 }
 
 // Compilation: CXXFLAGS=-DDEF_LOG_LEVEL=2 make
 //#define DEF_LOG_LEVEL gLogLevel;  // define this to have runtime option
 #ifndef DEF_LOG_LEVEL
-#define DEF_LOG_LEVEL (LOG_LEVEL::debug)
+#define DEF_LOG_LEVEL (LOG_LEVEL::trace)
 #endif
-extern LOG_LEVEL::LOG_LEVEL gLogLevel;
 
-#define log_trace   (DEF_LOG_LEVEL <= LOG_LEVEL::trace) && tr_stream
-#define log_debug   (DEF_LOG_LEVEL <= LOG_LEVEL::debug) && tr_stream
-#define log_info    (DEF_LOG_LEVEL <= LOG_LEVEL::info) && tr_stream
-#define log_warn    (DEF_LOG_LEVEL <= LOG_LEVEL::warn) && tr_stream << "[WARN] "
-#define log_error   (DEF_LOG_LEVEL <= LOG_LEVEL::error) && err_stream
+
+#ifndef USE_RUNTIME_LOG_LEVEL
+#define log_trace   (DEF_LOG_LEVEL >= LOG_LEVEL::trace) && tr_stream
+#define log_debug   (DEF_LOG_LEVEL >= LOG_LEVEL::debug) && tr_stream
+#define log_info    (DEF_LOG_LEVEL >= LOG_LEVEL::info) && tr_stream
+#define log_warn    (DEF_LOG_LEVEL >= LOG_LEVEL::warn) && tr_stream << "[WARN] "
+#define log_error   (DEF_LOG_LEVEL >= LOG_LEVEL::error) && err_stream
 #define log_fatal   err_stream << "[FATAL] "
+#else
+extern LOG_LEVEL::LOG_LEVEL gLogLevel;
+#define log_trace   (DEF_LOG_LEVEL >= LOG_LEVEL::trace && gLogLevel >= LOG_LEVEL::trace) && tr_stream
+#define log_debug   (DEF_LOG_LEVEL >= LOG_LEVEL::debug && gLogLevel >= LOG_LEVEL::debug) && tr_stream
+#define log_info    (DEF_LOG_LEVEL >= LOG_LEVEL::info  && gLogLevel >= LOG_LEVEL::info)  && tr_stream
+#define log_warn    (DEF_LOG_LEVEL >= LOG_LEVEL::warn  && gLogLevel >= LOG_LEVEL::warn)  && tr_stream << "[WARN] "
+#define log_error   (DEF_LOG_LEVEL >= LOG_LEVEL::error && gLogLevel >= LOG_LEVEL::error) && err_stream
+#define log_fatal   (gLogLevel >= LOG_LEVEL::fatal) && err_stream << "[FATAL] "
+#endif
 
 
 #define TraceF      log_trace
@@ -90,6 +100,7 @@ extern LOG_LEVEL::LOG_LEVEL gLogLevel;
 #define Trace2(a,b)   log_trace << #a << " = " << (a) <<"; " << #b << " = " << (b)
 #define Trace3(a,b,c)   log_trace << #a << " = " << (a) <<"; " << #b << " = " << (b) <<"; " << #c << " = " << (c)
 
+//#undef LOG_ENABLED
 
 #define NLOG4CXX
 #ifndef NLOG4CXX

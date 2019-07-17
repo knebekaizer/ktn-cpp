@@ -22,14 +22,14 @@ std::ostream &operator<<(std::ostream &os, const CXType& t) {
 }
 
 
-string ktn::getFullName(CXCursor cursor) {
+string ktn::buildFullName(CXCursor cursor) {
 	string name;
 	while (clang_isDeclaration(clang_getCursorKind(cursor)) != 0) {
 		string cur = convertAndDispose(clang_getCursorSpelling(cursor));
 		if (name.empty()) {
 			name = cur;
 		} else {
-			name = cur + "::" + name;
+			name.insert(0, cur + "::");
 		}
 		cursor = clang_getCursorSemanticParent(cursor);
 	}
@@ -37,7 +37,7 @@ string ktn::getFullName(CXCursor cursor) {
 	return name;
 }
 
-string ktn::getName(const CXType &type) {
+string ktn::getTypeSpelling(const CXType& type) {
 	//TODO: unfortunately, this isn't good enough. It only works as long as the
 	// type is fully qualified.
 	return convertAndDispose(clang_getTypeSpelling(type));
@@ -73,7 +73,7 @@ bool ktn::isRecursivelyPublic(CXCursor cursor) {
 	return true;
 }
 
-bool ktn::isReference(const CXType& type)
+bool ktn::isRefType(const CXType& type)
 {
 	return type.kind == CXType_LValueReference || type.kind == CXType_RValueReference;
 }

@@ -27,6 +27,7 @@ include_directories(${CLANG_INCLUDEDIR})
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+
 add_library(libreflang STATIC lib/reflang.hpp lib/reflang.cpp sample/h1.h)
 
 add_executable(
@@ -45,5 +46,7 @@ add_executable(
 #	src/serializer.util.cpp src/serializer.util.hpp
 	src/types.cpp src/types.hpp src/generator.h src/generator.cpp)
 target_link_libraries(reflang ${CLANG_LIBS})
+
+target_compile_definitions(reflang PUBLIC "-DUSE_RUNTIME_LOG_LEVEL")
 
 add_subdirectory(tests)

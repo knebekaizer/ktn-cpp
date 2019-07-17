@@ -109,8 +109,8 @@ CXChildVisitResult GetTypesVisitor(
 			break;
 		case CXCursor_ClassDecl:
 		case CXCursor_StructDecl:
-			if (!types_registry.insert(getFullName(cursor)).second) break;  // skip dups
-			type = std::make_unique<Class>(ktn::getClass(cursor));
+			if (!types_registry.insert(buildFullName(cursor)).second) break;  // skip dups
+			type = std::make_unique<Class>(ktn::buildClass(cursor));
 			break;
 		case CXCursor_FunctionDecl:
 			if (!symbols_registry.insert( convertAndDispose(clang_Cursor_getMangling(cursor)) ).second) break;  // skip dups
@@ -133,11 +133,11 @@ printTypeInfo(cursor);
 	}
 
 	if (type && !path.match(type->getFile())) {
-//		log_info << "Rejected by path dismatch: " << type->getFullName();
-//log_info << type->getFullName() << " : " << type->getFile();
+//		log_info << "Rejected by path dismatch: " << type->buildFullName();
+//log_info << type->buildFullName() << " : " << type->getFile();
 	}
 	if (type) {
-		const string& name = type->getFullName();
+		const string& name = type->fullName();
 		if (type
 		    && !name.empty()
 		    && ktn::isRecursivelyPublic(cursor)
@@ -166,7 +166,7 @@ vector<string> ktn::GetSupportedTypeNames(
 	names.reserve(types.size());
 	for (const auto& type : types)
 	{
-		names.push_back(type->getFullName());
+		names.push_back(type->fullName());
 	}
 	return names;
 }

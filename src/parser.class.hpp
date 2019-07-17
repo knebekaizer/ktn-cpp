@@ -7,7 +7,7 @@
 
 namespace ktn {
 
-Class getClass(CXCursor cursor);
+Class buildClass(CXCursor cursor);
 
 }
 

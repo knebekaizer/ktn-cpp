@@ -45,9 +45,16 @@ vector<string> GetFilesToProcess(CmdArgs &cmd_args, int &argc, char **&argv)
 }
 }
 
+LOG_LEVEL::LOG_LEVEL gLogLevel = DEF_LOG_LEVEL;
+
+
 int main(int argc, char **argv)
 {
 	CmdArgs cmd_args;
+	auto log_level = cmd_args.Register<int>(
+			"--log-level",
+			"0:none, 1:fatal, 2:error, 3:warn, 4:info, 5:debug, 6:trace",
+			-1);
 	auto list_only = cmd_args.Register<bool>(
 			"--list-only",
 			"Only list type names, don't generate",
@@ -81,6 +88,13 @@ int main(int argc, char **argv)
 
 	vector<string> files = GetFilesToProcess(cmd_args, argc, argv);
 
+	if (log_level->Get() >= 0) {
+		gLogLevel = (LOG_LEVEL::LOG_LEVEL)log_level->Get();
+#ifndef USE_RUNTIME_LOG_LEVEL
+		log_warn << "command line option \"--log-level\" will be ignored because compile-time option USE_RUNTIME_LOG_LEVEL was not enabled";
+#endif
+	}
+
 	ktn::Options options;
 	options.include = "^(" + filter_include->Get() + ")$";
 	options.exclude = "^(" + filter_exclude->Get() + ")$";
@@ -94,7 +108,6 @@ int main(int argc, char **argv)
 	} else {
 		auto types = ktn::GetTypes(files, argc, argv, options);
 		log_info << "types.size = " << types.size();
-		ktn::Options options;
 		options.include_path = reflang_include->Get();
 		options.out_hpp_path = out_hpp->Get();
 		options.out_cpp_path = out_cpp->Get();
