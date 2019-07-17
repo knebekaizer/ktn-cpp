@@ -9,30 +9,6 @@
 
 using namespace std;
 using namespace ktn;
-/*
-namespace std {
-std::ostream& operator<<(std::ostream& os, const Function &f);
-}
-*/
-template <typename T> T convertTo(CXType t);
-
-/*
- * Rationale: why not CxxType(CxType) constructor?
- * - Constructor is merely to _construct_ object from its details
- * - Here we need a _conversion_ from one domain (clang) to another (KTN)
- * - For the sake of _low coupling_ it's better to keep domains isolated, while this only function depends on both
- * (is it Dependency Inversion?)
- */
-template <> CxxType convertTo<CxxType>(CXType t) {
-	return CxxType(getTypeSpelling(t), isRefType(t));
-}
-CxxType buildCxxType(CXType type) {
-	return CxxType(getTypeSpelling(type), isRefType(type));
-}
-CxxType buildCxxType(CXCursor cursor) {
-	assert(clang_isDeclaration(clang_getCursorKind(cursor))); // caller is responsible to use in the proper context only!
-	return buildCxxType(clang_getCursorType(cursor));
-}
 
 
 Function ktn::buildFunction(CXCursor cursor)
@@ -49,11 +25,11 @@ Function ktn::buildFunction(CXCursor cursor)
 		if (arg_name.empty()) {
 			arg_name = "_arg" + std::to_string(i); // TODO make uniq
 		}
+
 		auto arg_type = clang_getArgType(type, i);
-		auto type_name = ktn::getTypeSpelling(arg_type);
+		log_trace << "Arg " << arg_name << " : " <<  arg_type << " isPointerTo " << clang_getPointeeType(arg_type);
+
 		Function::Argument arg(arg_name, buildCxxType(arg_cursor));
-		log_trace << "Arg " << arg.name << " : " <<  arg_type << " isPointerTo "
-		         << clang_getPointeeType(arg_type);
 		f.arguments.push_back(arg);
 	}
 

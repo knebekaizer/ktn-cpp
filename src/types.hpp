@@ -21,6 +21,8 @@ struct CxxType {
 	CxxType& operator=(const CxxType&) = default;
 	CxxType& operator=(CxxType&&) = default;
 
+	// OK to return the reference to member, as lifetime of objects stored in type registry is infinite.
+	// Or ??? in fact i don't want _any_ temporary strings, even with move semantics
 	std::string asCType() const;      // ex: Namespace__Class__InnerClass const * foo
 	std::string asCxxType() const { return type_name_; }    // ex: Namespace::Class::InnerClass const & foo
 
@@ -42,6 +44,7 @@ struct CxxType {
 
 private:
 	std::string type_name_; // spelling name
+//	std::unique_ptr<std::string> mangling_;
 	bool is_ref_ = false;
 	bool is_const_ = false;
 };

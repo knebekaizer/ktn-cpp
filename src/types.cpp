@@ -94,6 +94,6 @@ Function::Function(std::string file, std::string full_name, bool constMember)
 }
 
 std::string CxxType::asCType() const {
-	// quick-n-dirty mangling, may not work
+//	return mangling_ ? *mangling_ : asCxxType();
 	return simpleMangling(type_name_);
 }

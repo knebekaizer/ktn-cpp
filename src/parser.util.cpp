@@ -1,6 +1,11 @@
 #include "parser.util.hpp"
+#include "types.hpp"
+
+#include <clang-c/Index.h>
+
 
 using namespace std;
+using namespace ktn;
 
 string ktn::convertAndDispose(const CXString &s) {
 	auto cstr = clang_getCString(s);
@@ -77,6 +82,26 @@ bool ktn::isRefType(const CXType& type)
 {
 	return type.kind == CXType_LValueReference || type.kind == CXType_RValueReference;
 }
+
+
+/*
+ * Rationale: why not CxxType(CxType) constructor?
+ * - Constructor is merely to _construct_ object from its details
+ * - Here we need a _conversion_ from one domain (clang) to another (KTN)
+ * - For the sake of _low coupling_ it's better to keep domains isolated, while this only function depends on both
+ * (is it Dependency Inversion?)
+ */
+CxxType ktn::buildCxxType(CXType type) {
+	auto canonical = clang_getCanonicalType(type);
+	auto is_ref = isRefType(canonical.kind == CXType_Invalid ? type : canonical);
+	return CxxType(getTypeSpelling(type), is_ref);
+}
+
+CxxType ktn::buildCxxType(CXCursor cursor) {
+	assert(clang_isDeclaration(clang_getCursorKind(cursor))); // caller is responsible to use in the proper context only!
+	return buildCxxType(clang_getCursorType(cursor));
+}
+
 
 namespace {
 int wildcmp(const char* wild, const char* string)
