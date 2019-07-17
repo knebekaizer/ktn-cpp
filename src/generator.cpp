@@ -41,7 +41,7 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 	// This may be skipped if C and C++ return types are the same
 	os << "(" << f.returnType.asCType() << ") ";
 
-	if (f.returnType.isRef())  os << "*";  // return reference as pointer:
+	if (f.returnType.isRef())  os << "&";  // return reference as pointer:
 
 	if (f.receiver) {
 		// hidden arg
