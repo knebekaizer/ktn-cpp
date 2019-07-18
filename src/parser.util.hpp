@@ -30,6 +30,8 @@ CxxType buildCxxType(CXType type);
 
 CxxType buildCxxType(CXCursor cursor);
 
+std::string simpleMangling(std::string s, const char* prefix = "K2N_");
+
 
 class WildCard {
 public:

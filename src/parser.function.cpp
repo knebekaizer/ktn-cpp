@@ -26,14 +26,13 @@ Trace2(f.short_name, clang_CXXMethod_isConst(cursor));
 			arg_name = "_arg" + std::to_string(i); // TODO make uniq
 		}
 
-		auto arg_type = clang_getArgType(type, i);
-		log_trace << "Arg " << arg_name << " : " <<  arg_type << " isPointerTo " << clang_getPointeeType(arg_type);
-
 		Function::Argument arg(arg_name, buildCxxType(arg_cursor));
+		TraceX(arg.dump());
 		f.arguments.push_back(arg);
 	}
 
 	f.returnType = buildCxxType(clang_getResultType(type));
+	TraceX(f.returnType.kind());
 	log_trace << f << " # " << clang_Cursor_getMangling(cursor);
 	return f;
 }

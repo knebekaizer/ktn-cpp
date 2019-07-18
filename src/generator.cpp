@@ -19,15 +19,18 @@ namespace gen = generator;
 
 ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 {
+//	TraceX(f.returnType.kind());
 	os << f.returnType.asCType() << " ";
 	os << f.asCName() << "(";
 	auto nArgs = f.arguments.size();
 
 	if (f.receiver) {
 		// hidden arg
-		os << f.receiver->asCType();
-		if (f.isConstMember()) os << " const";
-		os << "* self";
+	//	os << f.receiver->asCType();
+	//	if (f.isConstMember()) os << " const";
+	//	os << "* self";
+	// KISS: void* instead of mangled type
+		os << "void* self";
 		if (nArgs) os << ", ";
 	}
 
@@ -36,12 +39,22 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 		if (--nArgs > 0) os << ", ";
 	}
 	os << ") {\n";
-	os << "    return ";
+	os << "    ";
 
-	// This may be skipped if C and C++ return types are the same
-	os << "(" << f.returnType.asCType() << ") ";
+	if (!f.returnType.isVoid()) {
+		os << "return ";
 
-	if (f.returnType.isRef())  os << "&";  // return reference as pointer:
+		// Return type cast to C may be skipped if C and C++ return types are the same
+		// or if ret type is pointer or reference (because all them are represented as void* in C and therefore does not require cast
+		if (!f.returnType.isPtr() && !f.returnType.isRef() && f.returnType.isMangled()) {
+			// I want to return non-trivial (ie mangled) type _by value_
+			// C-type cast may be not possible, let's try to cast pointers instead: *(cType*)&
+			os << "*(" << f.returnType.asCType() << "*)& ";
+			//TODO primitive typedefed types will be mangled but does not require cast at all
+		}
+
+		if (f.returnType.isRef())  os << "&";  // return reference as pointer:
+	}
 
 	if (f.receiver) {
 		// hidden arg
@@ -54,7 +67,7 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 	}
 
 	os  << "(";
-	auto n = f.arguments.size(); // Awfull. I wish I had python-like join
+	auto n = f.arguments.size();
 	for (auto& a : f.arguments) {
 		if (a.isRef()) os << " * ";  // reference parameter was sent as pointer is C wrapper
 
@@ -69,7 +82,7 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 		}
 
 		os << a.name;
-		if (--n) os << ", ";
+		if (--n) os << ", ";    // I wish I had python-like join
 	}
 	os << ");\n}";
 

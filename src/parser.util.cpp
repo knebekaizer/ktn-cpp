@@ -85,10 +85,6 @@ bool ktn::isRecursivelyPublic(CXCursor cursor) {
 
 namespace {
 
-bool isRefType_(CXType type) {
-	return type.kind == CXType_LValueReference || type.kind == CXType_RValueReference;
-}
-
 /*
 bool isPrimType_(CXType type) {
 	static const set<CXTypeKind> prim_types = {
@@ -118,10 +114,14 @@ bool isPrimType_(CXType type) {
 	return prim_types.find(type.kind) != prim_types.end();
 }
 */
-string simpleMangling(string s, const char* prefix = "K2N_") {
+
+}
+
+string ktn::simpleMangling(string s, const char* prefix) {
 	// sort of uniq (uncommon) prefix
 
 	if (prefix && *prefix) {
+		// FIXME Dirty and fragile. Will be broken when Clang changes spelling format.
 		regex pattern("^(const +)*");
 		s = regex_replace(s, pattern, string("$1") + prefix);
 	}
@@ -129,8 +129,6 @@ string simpleMangling(string s, const char* prefix = "K2N_") {
 	replace(s.begin(), s.end(), ':', '_');
 	replace(s.begin(), s.end(), '&', '*');
 	return s;
-}
-
 }
 
 /*
@@ -143,10 +141,23 @@ string simpleMangling(string s, const char* prefix = "K2N_") {
 CxxType ktn::buildCxxType(CXType type) {
 	auto canonical = clang_getCanonicalType(type);
 	auto real_type = canonical.kind == CXType_Invalid ? type : canonical;
-	bool is_ref = isRefType_(real_type);
-	bool is_ptr = real_type.kind == CXType_Pointer;
+	CxxType::KIND kind = clang_isPODType(real_type) ? kind = CxxType::KIND::POD : CxxType::KIND::OTHER;
+	switch (real_type.kind) {
+		case CXType_Invalid:
+			kind = CxxType::KIND::INVALID; break;
+		case CXType_Void:
+			kind = CxxType::KIND::VOID; break;
+		case CXType_Pointer:
+			kind = CxxType::KIND::PTR; break;
+		case CXType_LValueReference:
+		case CXType_RValueReference:  // ???
+			kind = CxxType::KIND::REF; break;
+		default:
+			break;
+	}
+
 	bool is_const = clang_isConstQualifiedType(real_type);
-TraceX(real_type);
+//TraceX(real_type);
 	auto name = getTypeSpelling(type);
 	string cname;
 	string pointee;
@@ -159,15 +170,15 @@ TraceX(real_type);
 		case CXType_Pointer:
 		case CXType_LValueReference:
 		case CXType_RValueReference:  // ???
-			cname = "void *"; // TODO this is not my best, use opaque C pointer type
-TraceX(clang_getPointeeType(real_type));
+			cname = "void *"; // TODO shoud i use opaque C pointer type to get type checking at compile time?
+//TraceX(clang_getPointeeType(real_type));
 			pointee = getTypeSpelling(clang_getPointeeType(real_type));
 			break;
 		default:
 			break;
 	}
-Trace2(name, cname);
-	return CxxType(name, is_ptr, is_ref, is_const, cname, pointee);
+//Trace2(name, cname);
+	return CxxType(name, kind, is_const, cname, pointee);
 }
 
 CxxType ktn::buildCxxType(CXCursor cursor) {

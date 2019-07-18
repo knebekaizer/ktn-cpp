@@ -5,19 +5,23 @@
 #include <vector>
 
 #include <ostream>
+#include <sstream>
 #include <memory>
+#include <cstddef>
 
-
-struct CxxType {
+class CxxType {
+public:
+	enum class KIND { // keep a minimal subset of CxTypeKind (remapped)
+		OTHER, INVALID, VOID, PTR, REF, POD
+	};
 	//	using Kind = CXTypeKind;
 	//	Kind kind;
-	explicit CxxType(std::string spelling, bool ptr_ = false, bool ref_ = false, bool const_ = false,
+	explicit CxxType(std::string spelling, KIND kind = KIND::OTHER, bool const_ = false,
 			std::string mangling = "", std::string pointee = "")
 			: type_name_(move(spelling))
-			  , ctype_name_(mangling)
-			  , pointee_(pointee)
-			  , is_ptr_(ptr_)
-			  , is_ref_(ref_)
+			  , ctype_name_(std::move(mangling))
+			  , pointee_(std::move(pointee))
+			  , kind_(kind)
 			  , is_const_(const_)
 			{}
 
@@ -34,10 +38,11 @@ struct CxxType {
 	std::string asCxxType() const { return type_name_; }    // ex: Namespace::Class::InnerClass const & foo
 	std::string pointee() const { return pointee_; }
 
-	bool isRef() const { return is_ref_; }
-	bool isPtr() const { return is_ptr_; }
-	bool isPtrOrRef() const { return is_ptr_ || is_ref_; }
+	KIND kind() const { return kind_; }
 	bool isConst() const { return is_const_; }
+	bool isRef() const { return kind_ == KIND::REF; }
+	bool isPtr() const { return kind_ == KIND::PTR; }
+	bool isVoid() const { return kind_ == KIND::VOID; }
 
 	bool isMangled() const { return !ctype_name_.empty() && ctype_name_ != type_name_ ; } // TODO do it better
 
@@ -54,15 +59,43 @@ struct CxxType {
 	 isCType  // primitive or pointer to CType
 	 */
 
+	// Debug
+	std::string dump() const {
+		std::ostringstream os;
+		os << "CxxType{" << asCxxType()
+		   << " ("
+		   << (isConst() ? "const" : "")
+		   << (isPtr() ? "*" : "")
+		   << (isRef() ? "&" : "")
+		   <<") "
+		   << "C{" << asCType() << "} "
+		   << (isPtr() || isRef() ? (std::string(" -> ") + pointee()) : std::string())
+		   << "}";
+		return os.str();
+	}
+
 private:
 	std::string type_name_; // spelling name
 	std::string ctype_name_; // mangling
 	std::string pointee_;   // C++ native pointee type
-//	std::unique_ptr<std::string> mangling_;
-	bool is_ptr_ = false;
-	bool is_ref_ = false;
+	KIND kind_;
 	bool is_const_ = false;
 };
+
+
+inline std::ostream& operator<<(std::ostream& os, CxxType const& x) {
+	return os << x.asCxxType(); // default printing
+}
+
+inline std::ostream& operator<<(std::ostream& os, CxxType::KIND const& x) {
+	static const char* names[] = {"OTHER", "INVALID", "VOID", "PTR", "REF", "POD"};
+	// weak attempt to keep the map consistent
+	static_assert((int)CxxType::KIND::REF == 4, "FIXME: CxxType::KIND layout have been changed recently");
+//	OTHER, INVALID, VOID, PTR, REF, POD
+	os << (((unsigned int)x < sizeof(names)/sizeof(*names)) ? names[(unsigned int)x] : "UNKNOWN");
+	return os; // << x.asCxxType(); // default printing
+}
+
 
 class TypeBase {
 public:
@@ -110,10 +143,6 @@ struct TypedName : CxxType {
 	/*const*/ std::string name;
 };
 
-inline std::ostream& operator<<(std::ostream& os, CxxType const& x) {
-	return os << x.asCxxType(); // default printing
-}
-
 class Class;
 
 class Function : public TypeBase {
@@ -129,7 +158,7 @@ public:
 	bool isInstanceMember() const { return receiver ? true : false; }
 	bool isConstMember() const { return const_member_; }
 
-	std::string asCName() const { return mangling_; }
+	std::string asCName() const { return !mangling_.empty() ? mangling_ : fullName(); }
 	std::string shortName() const { return short_name; }
 
 	Arguments arguments;

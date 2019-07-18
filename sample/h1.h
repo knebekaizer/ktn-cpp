@@ -34,12 +34,12 @@ MyClass* myClassPtr;
 }
 
 using MyClassT = ns::MyClass;
-ns::MyClass const* freeFoo(ns::MyClass const&);
-ns::MyClass const* freeFoo(const ns::MyClass byValue);
+ns::MyClass const* freeFoo(ns::MyClass&);
+ns::MyClass freeFoo(const ns::MyClass byValue);
 ns::MyClass const& freeFoo(MyClassT* byPtr);
 
-using MyClassRef = MyClassT&;
-typedef MyClassRef MyClassT2;
+using MyClassConstRef = MyClassT const&;
+typedef MyClassConstRef MyClassT2;
 int freeFoo(MyClassT2 byRefTypedef);
 
 auto autoFun(long& x) {

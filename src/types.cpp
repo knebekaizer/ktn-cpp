@@ -1,4 +1,5 @@
 #include "types.hpp"
+#include "parser.util.hpp"
 
 #include <unordered_set>
 
@@ -73,7 +74,7 @@ Function::Function(std::string file, std::string full_name, bool const_)
 		: TypeBase(move(file), move(full_name))
 		, const_member_(const_)
 {
-	mangling_ = ensureUniqName(fullName());
+	mangling_ = ensureUniqName(ktn::simpleMangling(fullName()));
 }
 
 std::string CxxType::asCType() const {

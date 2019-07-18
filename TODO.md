@@ -2,7 +2,6 @@ TODO:
 -----
 
 - extern "C"
-- Add common prefix (e.g. $_) to C mangling, to avoid collision with simple C++ types declared in the global namespace
 - Hide API with non-POD by-value args and returns. Map POD types to C opaque blob:
 
 ```C
@@ -18,4 +17,5 @@ TODO:
 Done:
 ----
 
+- Add common prefix (e.g. $_) to C mangling, to avoid collision with simple C++ types declared in the global namespace
 - skip duplicates
