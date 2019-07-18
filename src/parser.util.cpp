@@ -11,6 +11,34 @@
 using namespace std;
 using namespace ktn;
 
+string ktn::simpleMangling(string s, const char* prefix) {
+	// sort of uniq (uncommon) prefix
+
+	if (prefix && *prefix) {
+		// FIXME Dirty and fragile. Will be broken when Clang changes spelling format.
+		regex pattern("^(const +)*");
+		s = regex_replace(s, pattern, string("$1") + prefix);
+	}
+
+	replace(s.begin(), s.end(), ':', '_');
+	replace(s.begin(), s.end(), '&', '*');
+
+	// operators
+	s = regex_replace(s, regex("<<"), "Left");
+	s = regex_replace(s, regex(">>"), "Right");
+	s = regex_replace(s, regex("\\+\\+"), "Incr");
+	s = regex_replace(s, regex("--"), "Decr");
+	s = regex_replace(s, regex("\\+="), "IncrBy");
+	s = regex_replace(s, regex("-="), "DecrBy");
+
+	s = regex_replace(s, regex("=="), "Equal");
+	s = regex_replace(s, regex("<"), "Less");
+	s = regex_replace(s, regex(">"), "More");
+	s = regex_replace(s, regex("="), "Assign");
+
+	return s;
+}
+
 string ktn::convertAndDispose(const CXString &s) {
 	auto cstr = clang_getCString(s);
 	string result = cstr ? cstr : "";
@@ -18,16 +46,20 @@ string ktn::convertAndDispose(const CXString &s) {
 	return result;
 }
 
-std::ostream &operator<<(std::ostream &os, CXString &&s) {
+std::ostream& operator<<(std::ostream &os, CXString &&s) {
 	auto cstr = clang_getCString(s);
 	os << (cstr ? cstr : "");
 	clang_disposeString(s);
 	return os;
 }
 
-std::ostream &operator<<(std::ostream &os, const CXType& t) {
+std::ostream& operator<<(std::ostream &os, const CXType& t) {
 	os << clang_getTypeSpelling(t) << "." << clang_getTypeKindSpelling(t.kind);
 	return os;
+}
+
+bool ktn::isOperatorFunction(CXCursor cursor) {
+	return convertAndDispose(clang_getCursorSpelling(cursor)).substr(0, 8) == "operator";
 }
 
 
@@ -115,20 +147,6 @@ bool isPrimType_(CXType type) {
 }
 */
 
-}
-
-string ktn::simpleMangling(string s, const char* prefix) {
-	// sort of uniq (uncommon) prefix
-
-	if (prefix && *prefix) {
-		// FIXME Dirty and fragile. Will be broken when Clang changes spelling format.
-		regex pattern("^(const +)*");
-		s = regex_replace(s, pattern, string("$1") + prefix);
-	}
-
-	replace(s.begin(), s.end(), ':', '_');
-	replace(s.begin(), s.end(), '&', '*');
-	return s;
 }
 
 /*

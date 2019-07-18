@@ -80,6 +80,7 @@ CXChildVisitResult getTypesVisitor(
 			type = std::make_unique<Class>(ktn::buildClass(cursor));
 			break;
 		case CXCursor_FunctionDecl:
+			if (isOperatorFunction(cursor)) break;
 			if (!symbols_registry.insert( convertAndDispose(clang_Cursor_getMangling(cursor)) ).second) break;  // skip dups
 			type = std::make_unique<Function>(ktn::buildFunction(cursor));
 			break;

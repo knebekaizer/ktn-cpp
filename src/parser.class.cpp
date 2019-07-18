@@ -38,6 +38,7 @@ CXChildVisitResult visitClass(
 			//	clazz->dtor = getMethodFromCursor(cursor);
 				break;
 			case CXCursor_CXXMethod:
+				if (isOperatorFunction(cursor)) break;
 				clazz->methods.push_back(ktn::buildFunction(cursor));
 				if (!clang_CXXMethod_isStatic(cursor)) {
 				//	clazz->methods.back().setReceiver( CxxType(clazz->fullName(), false, (bool)clang_CXXMethod_isConst(cursor)) );

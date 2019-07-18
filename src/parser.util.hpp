@@ -41,7 +41,9 @@ private:
 	const std::string wildcard_;
 };
 
-}
+bool isOperatorFunction(CXCursor cursor);
+
+} // namespace ktn
 
 
 std::ostream& operator<<(std::ostream& os, CXString&& s);
