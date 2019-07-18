@@ -107,11 +107,10 @@ int main(int argc, char **argv)
 		}
 	} else {
 		auto types = ktn::getTypes(files, argc, argv, options);
-		log_info << "types.size = " << types.size();
 		options.include_path = reflang_include->Get();
 		options.out_hpp_path = out_hpp->Get();
 		options.out_cpp_path = out_cpp->Get();
-	//	generator::genCxxDefinition(cout, types);
+	//	generator::genCxxDefinition(cout, types); // TODO apply output options!
 	}
 }
 

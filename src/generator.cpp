@@ -101,6 +101,23 @@ ostream& gen::genCxxDefinition(ostream& os, const Class& c)
 	return os;
 }
 
+namespace {
+
+bool isTypeSupported(const Function& f)  {
+	// reject non-POD sent by value
+	if (f.returnType.kind() == CxxType::KIND::OTHER)
+		return false;
+
+	for (auto& a : f.arguments) {
+		if (a.kind() == CxxType::KIND::OTHER) {
+			return false;
+		}
+	}
+	return true;
+};
+
+}
+
 void gen::genCxxDefinition(std::ostream& os, Types::const_iterator begin, Types::const_iterator end)
 {
 	for (auto it = begin; it != end; ++it) {
@@ -110,6 +127,10 @@ void gen::genCxxDefinition(std::ostream& os, Types::const_iterator begin, Types:
 				//	SerializeEnumHeader(*out_hpp, static_cast<const Enum&>(*type));
 				break;
 			case TypeBase::Type::Function:
+				// TODO: skip definition but print commented notice to declaration output
+				if (!isTypeSupported(static_cast<const Function&>(**it))) {
+					break;
+				}
 				genCxxDefinition(os, static_cast<const Function&>(**it));
 				os << "\n";
 				break;
