@@ -22,14 +22,14 @@ struct Options {
 	//TODO: bool standalone = false;
 };
 
-std::vector<std::string> GetSupportedTypeNames(
+std::vector<std::string> getSupportedTypeNames(
 		const std::vector<std::string>& files,
-		int argc, char* argv[],
+		int argc, char** argv,
 		const Options& options = Options());
 
-std::vector<std::unique_ptr<TypeBase>> GetTypes(
+std::vector<std::unique_ptr<TypeBase>> getTypes(
 		const std::vector<std::string>& files,
-		int argc, char* argv[],
+		int argc, char** argv,
 		const Options& options = Options());
 
 class Parser {

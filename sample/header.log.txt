@@ -96,7 +96,7 @@ unsigned char u_chars[10];
 template <class T> class Vector {};
 
 Vector<A4> A4Vector;
-	GetTypesVisitor> var A4Vector>
+	getTypesVisitor> var A4Vector>
 	 type: Vector<A4>.Unexposed
 	 canonical: Vector<int [4]>.Record
 	 pointee: .Invalid

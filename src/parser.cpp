@@ -19,41 +19,8 @@ using namespace ktn;
 namespace
 {
 
-void printTypeInfo(CXCursor cursor) {
-	auto t = clang_getCursorType (cursor);
-	TraceX(t);
-
-	ostringstream tmp;
-
-/*
-printTypeInfo> t = auto.Auto
-printTypeInfo> clang_getCanonicalType(t) = auto.Auto
-printTypeInfo> auto*******************************************
- ... infinite loop
-	auto derefCount = 0;
-	while ((t = clang_getPointeeType(clang_getCanonicalType(t))).kind != CXType_Invalid) {
-		++derefCount;
-		log_trace << clang_getTypeSpelling(t) << string(derefCount, '*');
-		TraceX(t);
-		TraceX(clang_getCanonicalType(t));
-	}
-*/
-/*
-//	clang_getTypedefDeclUnderlyingType (CXCursor C)
-//	clang_getEnumDeclIntegerType (CXCursor C)
-	clang_isPODType (CXType T)
-	clang_Type_getNamedType (CXType T)
-	clang_Type_getCXXRefQualifier (CXType T)
-	log_trace << "Var: " <<  clang_getCursorSpelling(cursor) << "> "
-	         << "\n type: " <<  t
-	         << "\n canonical: " << clang_getCanonicalType(t)
-	         << "\n pointee: " << clang_getPointeeType(t)
-	         << "\n elemKind: " << clang_getElementType(t) ;
-*/
-}
-
-CXTranslationUnit Parse(
-		CXIndex& index, const string& file, int argc, char* argv[])
+CXTranslationUnit parse(
+		CXIndex& index, const string& file, int argc, char** argv)
 {
 	CXTranslationUnit unit = clang_parseTranslationUnit(
 			index,
@@ -76,7 +43,7 @@ CXTranslationUnit Parse(
 			log_error << ">>> "
 				<< clang_formatDiagnostic(
 						diag, clang_defaultDiagnosticDisplayOptions());
-			exit(-1);
+		//	exit(-1);
 		}
 	}
 
@@ -89,7 +56,7 @@ struct GetTypesStruct
 	const ktn::Options* options;
 };
 
-CXChildVisitResult GetTypesVisitor(
+CXChildVisitResult getTypesVisitor(
 		CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
 
@@ -125,23 +92,17 @@ log_trace << "Var: " <<  clang_getCursorSpelling(cursor) << "> "
 	 << "\n canonical: " << clang_getCanonicalType(t)
 	 << "\n pointee: " << clang_getPointeeType(t)
      << "\n elemKind: " << clang_getElementType(t) ;
-printTypeInfo(cursor);
 }
-
 		default:
 			break;
 	}
 
-	if (type && !path.match(type->getFile())) {
-//		log_info << "Rejected by path dismatch: " << type->buildFullName();
-//log_info << type->buildFullName() << " : " << type->getFile();
-	}
 	if (type) {
 		const string& name = type->fullName();
 		if (type
 		    && !name.empty()
 		    && ktn::isRecursivelyPublic(cursor)
-		    && !(name.back() == ':')
+		    && name.back() != ':'
 		    && path.match(type->getFile())
 		    && regex_match(name, data->options->include)
 		    && !regex_match(name, data->options->exclude))
@@ -155,12 +116,12 @@ printTypeInfo(cursor);
 
 }  // namespace
 
-vector<string> ktn::GetSupportedTypeNames(
+vector<string> ktn::getSupportedTypeNames(
 		const std::vector<std::string>& files,
-		int argc, char* argv[],
+		int argc, char** argv,
 		const Options& options)
 {
-	auto types = GetTypes(files, argc, argv, options);
+	auto types = getTypes(files, argc, argv, options);
 
 	vector<string> names;
 	names.reserve(types.size());
@@ -171,9 +132,9 @@ vector<string> ktn::GetSupportedTypeNames(
 	return names;
 }
 
-vector<unique_ptr<TypeBase>> ktn::  GetTypes(
+vector<unique_ptr<TypeBase>> ktn::  getTypes(
 		const std::vector<std::string>& files,
-		int argc, char* argv[],
+		int argc, char** argv,
 		const Options& options)
 {
 //	for (int k=0; k!= argc; ++k) log_trace << argv[k];
@@ -182,12 +143,12 @@ vector<unique_ptr<TypeBase>> ktn::  GetTypes(
 	for (const auto& file : files)
 	{
 		CXIndex index = clang_createIndex(0, 0);
-		CXTranslationUnit unit = Parse(index, file, argc, argv);
+		CXTranslationUnit unit = parse(index, file, argc, argv);
 
 		auto cursor = clang_getTranslationUnitCursor(unit);
 
 		GetTypesStruct data = { &results, &options };
-		clang_visitChildren(cursor, GetTypesVisitor, &data);
+		clang_visitChildren(cursor, getTypesVisitor, &data);
 
 		clang_disposeTranslationUnit(unit);
 		clang_disposeIndex(index);

@@ -1,4 +1,4 @@
-0. Parse AST
+0. parse AST
 0. Visit recursively, collect supported entries
 0. For each entity in list generate wrappers
 

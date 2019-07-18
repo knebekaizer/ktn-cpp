@@ -101,12 +101,12 @@ int main(int argc, char **argv)
 	options.path_filter = path_filter->Get();
 
 	if (list_only->Get()) {
-		auto names = ktn::GetSupportedTypeNames(files, argc, argv, options);
+		auto names = ktn::getSupportedTypeNames(files, argc, argv, options);
 		for (const auto &it : names) {
 			cout << it << endl;
 		}
 	} else {
-		auto types = ktn::GetTypes(files, argc, argv, options);
+		auto types = ktn::getTypes(files, argc, argv, options);
 		log_info << "types.size = " << types.size();
 		options.include_path = reflang_include->Get();
 		options.out_hpp_path = out_hpp->Get();
