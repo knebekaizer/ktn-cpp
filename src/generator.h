@@ -15,18 +15,27 @@ class Function;
 class Class;
 
 
-namespace generator {
+namespace ktn {
+
+class WrapperGenerator {
+public:
+	WrapperGenerator(std::ostream& out_decl, std::ostream& out_def)
+		: decl_(out_decl), impl_(out_def) {}
 
 /// @return false if skipped (not supported), true otherwise
-bool genCDeclaration(std::ostream &os, const Function& f, bool doTypeStubs = false);
+	bool genCDeclaration(const Function& f, bool toDeclStream = true);
 
-bool genCxxDefinition(std::ostream &os, const Function& f);
-std::ostream& genCxxDefinition(std::ostream &os, const Class& c);
+	bool genCxxDefinition(const Function& f);
+	std::ostream& genCxxDefinition(const Class& c);
 
-using Types = std::vector<std::unique_ptr<TypeBase>>;
-void genWrappers(std::ostream& out_decl, std::ostream& out_def, Types::const_iterator begin, Types::const_iterator end);
+	using Types = std::vector<std::unique_ptr<TypeBase>>;
+	void genWrappers(Types::const_iterator begin, Types::const_iterator end);
 
-bool genWrapper(std::ostream& str_decl, std::ostream& str_def, const Function& f);
+	bool genWrapper(const Function& f);
+
+	std::ostream& decl_;
+	std::ostream& impl_;
+};
 
 }
 

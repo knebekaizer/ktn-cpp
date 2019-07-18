@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 
 #include "cmdargs.hpp"
@@ -102,15 +103,33 @@ int main(int argc, char **argv)
 
 	if (list_only->Get()) {
 		auto names = ktn::getSupportedTypeNames(files, argc, argv, options);
-		for (const auto &it : names) {
+		for (const auto& it : names) {
 			cout << it << endl;
 		}
-	} else {
-		auto types = ktn::getTypes(files, argc, argv, options);
-		options.include_path = reflang_include->Get();
-		options.out_hpp_path = out_hpp->Get();
-		options.out_cpp_path = out_cpp->Get();
-	//	generator::genCxxDefinition(cout, types); // TODO apply output options!
+		return 0;
 	}
+
+	options.include_path = reflang_include->Get();
+
+	options.out_hpp_path = out_hpp->Get();
+	ostream* out_decl = &cout;
+	unique_ptr<ofstream> h_stream;
+	if (!options.out_hpp_path.empty()) {
+		h_stream = make_unique<ofstream>(options.out_hpp_path);
+		out_decl = h_stream.get();
+	}
+
+	options.out_cpp_path = out_cpp->Get();
+	ostream* out_impl = &cout;
+	unique_ptr<ofstream> c_stream;
+	if (!options.out_cpp_path.empty()) {
+		c_stream = make_unique<ofstream>(options.out_cpp_path);
+		out_impl = c_stream.get();
+	}
+	ktn::WrapperGenerator gen(*out_decl, *out_impl);
+
+	auto types = ktn::getTypes(files, argc, argv, options, &gen);
+
+	return 0;
 }
 

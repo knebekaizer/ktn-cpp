@@ -136,7 +136,8 @@ vector<string> ktn::getSupportedTypeNames(
 vector<unique_ptr<TypeBase>> ktn::  getTypes(
 		const std::vector<std::string>& files,
 		int argc, char** argv,
-		const Options& options)
+		const Options& options,
+		WrapperGenerator* gen)
 {
 //	for (int k=0; k!= argc; ++k) log_trace << argv[k];
 	vector<unique_ptr<TypeBase>> results;
@@ -154,7 +155,7 @@ vector<unique_ptr<TypeBase>> ktn::  getTypes(
 		clang_disposeTranslationUnit(unit);
 		clang_disposeIndex(index);
 	//	log_debug << "Loaded " << results.size() << " types";
-		generator::genWrappers(cout, cout, results.begin() + last, results.end());
+		if (gen) gen->genWrappers(results.begin() + last, results.end());
 	}
 	return results;
 }

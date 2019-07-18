@@ -176,7 +176,7 @@ CxxType ktn::buildCxxType(CXType type) {
 
 	// Signed int type is used. Return value may be negative in case of error;
 	// CxxType uses unsigned and considers 0 as invalid (erroneous) value.
-	auto size = clang_Type_getSizeOf(type);
+	auto size = real_type.kind > CXType_Void ? clang_Type_getSizeOf(type) : 0;
 	if (size < 0) {
 		log_error << "size error: " << size << " for type " << type;
 		size = 0;

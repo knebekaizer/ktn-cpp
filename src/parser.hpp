@@ -11,6 +11,8 @@
 
 namespace ktn {
 
+class WrapperGenerator;
+
 struct Options {
 	std::regex include;
 	std::regex exclude;
@@ -30,7 +32,8 @@ std::vector<std::string> getSupportedTypeNames(
 std::vector<std::unique_ptr<TypeBase>> getTypes(
 		const std::vector<std::string>& files,
 		int argc, char** argv,
-		const Options& options = Options());
+		const Options& options = Options(),
+		WrapperGenerator* generator = nullptr);
 
 class Parser {
 public:
