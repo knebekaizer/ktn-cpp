@@ -6,6 +6,7 @@
 #include "trace.h"
 
 using namespace std;
+using namespace ktn;
 
 namespace {
 
@@ -39,7 +40,8 @@ CXChildVisitResult visitClass(
 			case CXCursor_CXXMethod:
 				clazz->methods.push_back(ktn::buildFunction(cursor));
 				if (!clang_CXXMethod_isStatic(cursor)) {
-					clazz->methods.back().setReceiver( CxxType(clazz->fullName(), false, (bool)clang_CXXMethod_isConst(cursor)) );
+				//	clazz->methods.back().setReceiver( CxxType(clazz->fullName(), false, (bool)clang_CXXMethod_isConst(cursor)) );
+					clazz->methods.back().setReceiver( buildCxxType(parent) );
 				}
 				break;
 			case CXCursor_FieldDecl:

@@ -39,7 +39,7 @@ struct CxxType {
 	bool isPtrOrRef() const { return is_ptr_ || is_ref_; }
 	bool isConst() const { return is_const_; }
 
-	bool isMangled() const { return type_name_ != ctype_name_; } // TODO do it better
+	bool isMangled() const { return !ctype_name_.empty() && ctype_name_ != type_name_ ; } // TODO do it better
 
 	/*
 	shortName    // name in local scope: foo
@@ -128,6 +128,7 @@ public:
 
 	void setReceiver(CxxType&& thiz); // set optional receiver, i.e. class type if the function is non-static class member
 	bool isInstanceMember() const { return receiver ? true : false; }
+	bool isConstMember() const { return const_member_; }
 
 	std::string asCName() const;  //!< C mangling
 
@@ -139,6 +140,7 @@ public:
 
 private:
 	std::string mangling_;
+	bool const_member_ = false;
 };
 
 // Non-static member function

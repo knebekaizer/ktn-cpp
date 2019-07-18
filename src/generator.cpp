@@ -26,7 +26,7 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 	if (f.receiver) {
 		// hidden arg
 		os << f.receiver->asCType();
-		if (f.receiver->isConst()) os << " const";
+		if (f.isConstMember()) os << " const";
 		os << "* self";
 		if (nArgs) os << ", ";
 	}
@@ -46,11 +46,14 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 	if (f.receiver) {
 		// hidden arg
 		os << "((" << f.receiver->asCxxType();
-		if (f.receiver->isConst()) os << " const";
+		if (f.isConstMember()) os << " const";
 		os << "*)self)->";
+		os << f.name;
+	} else {
+		os << f.getName();
 	}
 
-	os << f.getName() << "(";
+	os  << "(";
 	auto n = f.arguments.size(); // Awfull. I wish I had python-like join
 	for (auto& a : f.arguments) {
 		if (a.isRef()) os << " * ";  // reference parameter was sent as pointer is C wrapper
