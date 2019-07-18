@@ -156,6 +156,7 @@ vector<unique_ptr<TypeBase>> ktn::  getTypes(
 		clang_disposeIndex(index);
 	//	log_debug << "Loaded " << results.size() << " types";
 		if (gen) gen->genWrappers(results.begin() + last, results.end());
+		last = results.size();
 	}
 	return results;
 }

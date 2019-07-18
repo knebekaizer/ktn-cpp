@@ -178,12 +178,11 @@ CxxType ktn::buildCxxType(CXType type) {
 	// CxxType uses unsigned and considers 0 as invalid (erroneous) value.
 	auto size = real_type.kind > CXType_Void ? clang_Type_getSizeOf(type) : 0;
 	if (size < 0) {
-		log_error << "size error: " << size << " for type " << type;
+	//	log_warn << "size error: " << size << " for type " << type;
 		size = 0;
 	}
 
 	bool is_const = clang_isConstQualifiedType(real_type);
-//TraceX(real_type);
 	auto name = getTypeSpelling(type);
 	string cname;
 	string pointee;
@@ -197,13 +196,11 @@ CxxType ktn::buildCxxType(CXType type) {
 		case CXType_LValueReference:
 		case CXType_RValueReference:  // ???
 			cname = "void *"; // TODO shoud i use opaque C pointer type to get type checking at compile time?
-//TraceX(clang_getPointeeType(real_type));
 			pointee = getTypeSpelling(clang_getPointeeType(real_type));
 			break;
 		default:
 			break;
 	}
-//Trace2(name, cname);
 	return CxxType(name, size, kind, is_const, cname, pointee);
 }
 
