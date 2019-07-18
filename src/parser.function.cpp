@@ -16,7 +16,8 @@ Function ktn::buildFunction(CXCursor cursor)
 	auto type = clang_getCursorType(cursor);
 
 	Function f(ktn::getFile(cursor), ktn::buildFullName(cursor), clang_CXXMethod_isConst(cursor));
-	f.name = ktn::convertAndDispose(clang_getCursorSpelling(cursor));
+	f.short_name = ktn::convertAndDispose(clang_getCursorSpelling(cursor));
+Trace2(f.short_name, clang_CXXMethod_isConst(cursor));
 	int num_args = clang_Cursor_getNumArguments(cursor);
 	for (int i = 0; i < num_args; ++i) {
 		auto arg_cursor = clang_Cursor_getArgument(cursor, i);

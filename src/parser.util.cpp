@@ -131,12 +131,6 @@ string simpleMangling(string s, const char* prefix = "K2N_") {
 	return s;
 }
 
-
-
-}
-
-std::string Function::asCName() const {
-	return simpleMangling(getName());
 }
 
 /*

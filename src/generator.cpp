@@ -48,9 +48,9 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 		os << "((" << f.receiver->asCxxType();
 		if (f.isConstMember()) os << " const";
 		os << "*)self)->";
-		os << f.name;
+		os << f.shortName();
 	} else {
-		os << f.getName();
+		os << f.fullName();
 	}
 
 	os  << "(";

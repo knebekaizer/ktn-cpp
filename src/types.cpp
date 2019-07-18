@@ -37,10 +37,6 @@ const string& TypeBase::fullName() const
 	return full_name_;
 }
 
-const string& TypeBase::getName() const
-{
-	return full_name_;
-}
 
 const string& TypeBase::getFile() const
 {
@@ -73,10 +69,11 @@ Class::Type Class::getType() const
 }
 
 
-Function::Function(std::string file, std::string full_name, bool constMember)
-		:	TypeBase(move(file), move(full_name))
+Function::Function(std::string file, std::string full_name, bool const_)
+		: TypeBase(move(file), move(full_name))
+		, const_member_(const_)
 {
-	mangling_ = ensureUniqName(mangling_);
+	mangling_ = ensureUniqName(fullName());
 }
 
 std::string CxxType::asCType() const {

@@ -24,6 +24,8 @@ namespace ns {
 class MyClass {
 public:
 	void foo(int x);
+	void foo(int x) const;
+	void foo(const char*) const;
 	char* getConst() const;
 	static MyClass* create();
 };

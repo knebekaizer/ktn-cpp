@@ -79,7 +79,6 @@ public:
 
 	virtual Type getType() const = 0;
 	const std::string& fullName() const;
-	const std::string& getName() const;
 	const std::string& getFile() const;
 
 protected:
@@ -130,14 +129,14 @@ public:
 	bool isInstanceMember() const { return receiver ? true : false; }
 	bool isConstMember() const { return const_member_; }
 
-	std::string asCName() const;  //!< C mangling
+	std::string asCName() const { return mangling_; }
+	std::string shortName() const { return short_name; }
 
-	std::string name;
 	Arguments arguments;
 	CxxType returnType;
 	std::unique_ptr<CxxType> receiver; // hidden argument
 
-
+	std::string short_name;
 private:
 	std::string mangling_;
 	bool const_member_ = false;
