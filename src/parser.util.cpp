@@ -4,7 +4,7 @@
 #include <clang-c/Index.h>
 
 #include <string>
-#include <set>
+#include <unordered_set>
 #include <regex>
 
 
@@ -119,7 +119,7 @@ namespace {
 
 /*
 bool isPrimType_(CXType type) {
-	static const set<CXTypeKind> prim_types = {
+	static const unordered_set<CXTypeKind> prim_types = {
 			CXType_Void, // = 2,
 			CXType_Bool, // = 3,
 			CXType_Char_U, // = 4,
@@ -174,6 +174,14 @@ CxxType ktn::buildCxxType(CXType type) {
 			break;
 	}
 
+	// Signed int type is used. Return value may be negative in case of error;
+	// CxxType uses unsigned and considers 0 as invalid (erroneous) value.
+	auto size = clang_Type_getSizeOf(type);
+	if (size < 0) {
+		log_error << "size error: " << size << " for type " << type;
+		size = 0;
+	}
+
 	bool is_const = clang_isConstQualifiedType(real_type);
 //TraceX(real_type);
 	auto name = getTypeSpelling(type);
@@ -196,7 +204,7 @@ CxxType ktn::buildCxxType(CXType type) {
 			break;
 	}
 //Trace2(name, cname);
-	return CxxType(name, kind, is_const, cname, pointee);
+	return CxxType(name, size, kind, is_const, cname, pointee);
 }
 
 CxxType ktn::buildCxxType(CXCursor cursor) {

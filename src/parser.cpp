@@ -154,7 +154,7 @@ vector<unique_ptr<TypeBase>> ktn::  getTypes(
 		clang_disposeTranslationUnit(unit);
 		clang_disposeIndex(index);
 	//	log_debug << "Loaded " << results.size() << " types";
-		generator::genCxxDefinition(cout, results.begin() + last, results.end());
+		generator::genWrappers(cout, cout, results.begin() + last, results.end());
 	}
 	return results;
 }

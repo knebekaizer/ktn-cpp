@@ -17,14 +17,16 @@ class Class;
 
 namespace generator {
 
+/// @return false if skipped (not supported), true otherwise
+bool genCDeclaration(std::ostream &os, const Function& f, bool doTypeStubs = false);
 
-std::ostream& genCxxDefinition(std::ostream &os, const Function& f);
+bool genCxxDefinition(std::ostream &os, const Function& f);
 std::ostream& genCxxDefinition(std::ostream &os, const Class& c);
 
 using Types = std::vector<std::unique_ptr<TypeBase>>;
-void genCxxDefinition(std::ostream& os, const std::vector<std::unique_ptr<TypeBase>>& types);
-void genCxxDefinition(std::ostream& os, Types::const_iterator begin, Types::const_iterator end);
+void genWrappers(std::ostream& out_decl, std::ostream& out_def, Types::const_iterator begin, Types::const_iterator end);
 
+bool genWrapper(std::ostream& str_decl, std::ostream& str_def, const Function& f);
 
 }
 

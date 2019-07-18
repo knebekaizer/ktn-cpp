@@ -8,6 +8,7 @@
 
 #include <ostream>
 #include <string>
+#include <unordered_set>
 
 #include "trace.h"
 
@@ -16,29 +17,77 @@ using namespace ktn;
 using namespace generator;
 namespace gen = generator;
 
+namespace {
 
-ostream& gen::genCxxDefinition(ostream& os, const Function& f)
+bool isTypeSupported(const Function& f)  {
+	// reject non-POD sent by value
+	if (f.returnType.kind() == CxxType::KIND::OTHER)
+		return false;
+
+	for (auto& a : f.arguments) {
+		if (a.kind() == CxxType::KIND::OTHER) {
+			return false;
+		}
+	}
+	return true;
+};
+
+bool ensureTypeDeclaration(std::ostream &os, const CxxType& t) {
+	return false;
+}
+
+}
+
+bool gen::genCDeclaration(std::ostream &os, const Function& f, bool doTypeStubs)
 {
-//	TraceX(f.returnType.kind());
+	// TODO move this to static member of class Generator
+	unordered_set<string> all_stubs;
+
+	bool rc = isTypeSupported(f);
+
+	if (!rc) {
+		os << "// [NOT SUPPORTED] ";
+	}
+
+	// don't declare stubs for unsupported functions
+	if (rc && doTypeStubs) {
+		ensureTypeDeclaration(os, f.returnType);
+		for (auto& a : f.arguments) {
+			ensureTypeDeclaration(os, a);
+		}
+	}
+
 	os << f.returnType.asCType() << " ";
 	os << f.asCName() << "(";
 	auto nArgs = f.arguments.size();
 
 	if (f.receiver) {
-		// hidden arg
+	// hidden arg
 	//	os << f.receiver->asCType();
 	//	if (f.isConstMember()) os << " const";
 	//	os << "* self";
 	// KISS: void* instead of mangled type
-		os << "void* self";
-		if (nArgs) os << ", ";
+	os << "void* self";
+	if (nArgs) os << ", ";
 	}
 
 	for (const auto& a : f.arguments) {
-		os << a.asCType() << " " << a.name;
-		if (--nArgs > 0) os << ", ";
+	os << a.asCType() << " " << a.name;
+	if (--nArgs > 0) os << ", ";
 	}
-	os << ") {\n";
+	os << ")";
+	// No semicolon at the end!
+	return rc;
+}
+
+
+bool gen::genCxxDefinition(ostream& os, const Function& f)
+{
+	if (!genCDeclaration(os, f)) {
+		return false;
+	}
+
+	os << " {\n";
 	os << "    ";
 
 	if (!f.returnType.isVoid()) {
@@ -86,12 +135,22 @@ ostream& gen::genCxxDefinition(ostream& os, const Function& f)
 	}
 	os << ");\n}";
 
-	return os;
+	return os ? true : false;
+}
+
+bool gen::genWrapper(std::ostream& out_decl, std::ostream& out_def, const Function& f)
+{
+	auto ok = genCDeclaration(out_decl, f);
+	out_decl << ";\n";
+
+	if (ok) {
+		genCxxDefinition(out_def, f) && out_def << "\n";
+	}
+	return ok;
 }
 
 ostream& gen::genCxxDefinition(ostream& os, const Class& c)
 {
-//	TraceX(c.getFile());
 	os << "// @class " << c.fullName() << ":\n";
 	for (const Function& f : c.methods) {
 		if (!f.isInstanceMember()) os << "/*static*/ ";
@@ -101,24 +160,7 @@ ostream& gen::genCxxDefinition(ostream& os, const Class& c)
 	return os;
 }
 
-namespace {
-
-bool isTypeSupported(const Function& f)  {
-	// reject non-POD sent by value
-	if (f.returnType.kind() == CxxType::KIND::OTHER)
-		return false;
-
-	for (auto& a : f.arguments) {
-		if (a.kind() == CxxType::KIND::OTHER) {
-			return false;
-		}
-	}
-	return true;
-};
-
-}
-
-void gen::genCxxDefinition(std::ostream& os, Types::const_iterator begin, Types::const_iterator end)
+void gen::genWrappers(std::ostream& out_decl, std::ostream& out_def, Types::const_iterator begin, Types::const_iterator end)
 {
 	for (auto it = begin; it != end; ++it) {
 		switch ((*it)->getType())
@@ -127,40 +169,12 @@ void gen::genCxxDefinition(std::ostream& os, Types::const_iterator begin, Types:
 				//	SerializeEnumHeader(*out_hpp, static_cast<const Enum&>(*type));
 				break;
 			case TypeBase::Type::Function:
-				// TODO: skip definition but print commented notice to declaration output
-				if (!isTypeSupported(static_cast<const Function&>(**it))) {
-					break;
-				}
-				genCxxDefinition(os, static_cast<const Function&>(**it));
-				os << "\n";
+				genWrapper(out_decl, out_def, static_cast<const Function&>(**it));
 				break;
 			case TypeBase::Type::Class:
-				genCxxDefinition(os, static_cast<const Class&>(**it));
-				os << "\n";
+				genCxxDefinition(out_def, static_cast<const Class&>(**it)) && out_def << "\n";
 				break;
 		}
 	}
 
-}
-
-
-void gen::genCxxDefinition(ostream& os, const std::vector<std::unique_ptr<TypeBase>>& types)
-{
-	for (const auto& type : types)
-	{
-		switch (type->getType())
-		{
-			case TypeBase::Type::Enum:
-			//	SerializeEnumHeader(*out_hpp, static_cast<const Enum&>(*type));
-				break;
-			case TypeBase::Type::Function:
-				genCxxDefinition(os, static_cast<const Function&>(*type));
-				os << "\n";
-				break;
-			case TypeBase::Type::Class:
-				genCxxDefinition(os, static_cast<const Class&>(*type));
-				os << "\n";
-				break;
-		}
-	}
 }

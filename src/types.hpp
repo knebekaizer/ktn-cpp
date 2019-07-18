@@ -16,13 +16,14 @@ public:
 	};
 	//	using Kind = CXTypeKind;
 	//	Kind kind;
-	explicit CxxType(std::string spelling, KIND kind = KIND::OTHER, bool const_ = false,
+	explicit CxxType(std::string spelling, std::size_t size, KIND kind = KIND::OTHER, bool const_ = false,
 			std::string mangling = "", std::string pointee = "")
 			: type_name_(move(spelling))
 			  , ctype_name_(std::move(mangling))
 			  , pointee_(std::move(pointee))
 			  , kind_(kind)
 			  , is_const_(const_)
+			  , size_(size)
 			{}
 
 	CxxType() = default;
@@ -37,6 +38,8 @@ public:
 	std::string asCType() const;      // ex: Namespace__Class__InnerClass const * foo
 	std::string asCxxType() const { return type_name_; }    // ex: Namespace::Class::InnerClass const & foo
 	std::string pointee() const { return pointee_; }
+
+	auto size() const { return size_; }
 
 	KIND kind() const { return kind_; }
 	bool isConst() const { return is_const_; }
@@ -80,6 +83,7 @@ private:
 	std::string pointee_;   // C++ native pointee type
 	KIND kind_;
 	bool is_const_ = false;
+	std::size_t size_ = 0;
 };
 
 
