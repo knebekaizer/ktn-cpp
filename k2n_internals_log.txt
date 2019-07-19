@@ -1,0 +1,35 @@
+/Library/Java/JavaVirtualMachines/jdk-12.0.1.jdk/Contents/Home/bin/java -Djava.library.path=/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/nativelib -Dkonan.home=/Volumes/vdi/work/cpptools/kotlin-native/dist -Dfile.encoding=UTF-8 -cp /Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/kotlin-compiler.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/kotlin-stdlib.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/kotlin-reflect.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/kotlin-script-runtime.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/Runtime.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/StubGenerator.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/Indexer.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/backend.native.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/klib.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/utilities.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/shared.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/konan.metadata.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/konan.serializer.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/kotlin-native-utils.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/trove4j.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/kotlin-util-io.jar:/Volumes/vdi/work/cpptools/kotlin-native/dist/konan/lib/kotlin-util-klib.jar "-javaagent:/Applications/Development/IntelliJ IDEA.app/Contents/lib/idea_rt.jar=62732:/Applications/Development/IntelliJ IDEA.app/Contents/bin" org.jetbrains.kotlin.cli.utilities.MainKt cinterop -def samples/ktn-cpp/test.def -compiler-options "-x c++ -Isamples/ktn-cpp" -o test
+
+void test_kniBridge0 (void* p0, void* p1) {
+    TheStruct kniStructResult = bar((TheStruct*)p0);
+    memcpy(p1, &kniStructResult, sizeof(kniStructResult));
+}
+@SymbolName("test_kniBridge0")
+private external fun kniBridge0(p0: NativePtr, p1: NativePtr): Unit
+
+Process finished with exit code 0
+
+-----------
+test.kt:
+-----------
+@CStruct("struct { int p0; }")
+class TheStruct(rawPtr: NativePtr) : CStructVar(rawPtr) {
+
+    companion object : Type(8, 4)
+
+    var iPub: Int
+        get() = memberAt<IntVar>(0).value
+        set(value) { memberAt<IntVar>(0).value = value }
+}
+
+fun bar(s: CValuesRef<TheStruct>?): CValue<TheStruct> {
+    memScoped {
+        val kniRetVal = nativeHeap.alloc<TheStruct>()
+        try {
+            kniBridge0(s?.getPointer(memScope).rawValue, kniRetVal.rawPtr)
+            return kniRetVal.readValue()
+        } finally { nativeHeap.free(kniRetVal) }
+    }
+}
+@SymbolName("test_kniBridge0")
+private external fun kniBridge0(p0: NativePtr, p1: NativePtr): Unit

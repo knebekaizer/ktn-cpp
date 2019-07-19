@@ -6,10 +6,11 @@ typedef struct
 public:
 	int iPub;
 
-    void foo();
+//	void foo();
+//	void foo() const;
 
 private:
 	int iPriv;
 } TheStruct;
 
-int bar(TheStruct* s);
+TheStruct bar(TheStruct* s);
