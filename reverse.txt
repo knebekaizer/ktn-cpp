@@ -21,3 +21,22 @@ processCLib
 			generateStubsForStruct
 				addStubs
 					FunctionStubBuilder.build
+
+TODO: 
+   fun indexDeclaration(info: CXIdxDeclInfo): Unit {
+ 		CXIdxEntity_CXXInstanceMethod -> ...
+не так - 
+
+private fun getFunction(cursor: CValue<CXCursor>): FunctionDecl {
+
+class FunctionDecl(val name: String, val parameters: List<Parameter>, val returnType: Type, val binaryName: String,
+                   val isDefined: Boolean, val isVararg: Boolean)
+
+----
+
+private fun tryRenderStruct(def: StructDef): String? 
+internal class FunctionStubBuilder(
+        override val context: StubsBuildingContext,
+        private val func: FunctionDecl
+) : StubElementBuilder {
+    override fun build(): List<StubIrElement> {
