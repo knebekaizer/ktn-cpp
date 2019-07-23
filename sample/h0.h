@@ -1,16 +1,18 @@
 
 //namespace ns {
 
-typedef struct
+class TheStruct
 {
 public:
 	int iPub;
 
-//	void foo();
-//	void foo() const;
+	void foo(TheStruct*);
+	void foo() const;
 
 private:
 	int iPriv;
-} TheStruct;
+};
 
 TheStruct bar(TheStruct* s);
+
+//}
