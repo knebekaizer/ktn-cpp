@@ -1,29 +1,21 @@
 
 //namespace ns {
 
-typedef struct
+class TheStruct
 {
 public:
-	int iPub;
+	int iPub = 42;
 
-	void foo();
-
-	struct Inner {
-	    int innerInt;
-	} inner;
+	virtual int foo(const TheStruct*);
+//	int foo(const TheStruct*);
+private:
+//	TheStruct* fct() const;
 
 private:
 	int iPriv;
-} TheStruct;
+};
 
-int bar(TheStruct* s);
+TheStruct bar(TheStruct* s);
+TheStruct* create();
 
 //}
-/*
-ns::TheStruct theStruct;
-
-extern "C" {
-
-ns::TheStruct& xRef = theStruct;
-}
-*/
