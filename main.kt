@@ -3,19 +3,38 @@
 
 import kotlinx.cinterop.*
 import platform.posix.*
+import platform.posix.memcpy
 import test.*
 
 fun main() {
     val name = "You"
     println("Hey $name")
-    testCtor()
+    val theStruct = interpretPointed<TheStruct>(create().rawValue)
+    theStruct.iPub = 21
+    theStruct.foo(theStruct.ptr)
+    MyStruct.create2()
+
+//    val x = bar(null)
+//    val i = x.iPub
+//    testCtor()
     testCtor2()
+    testCtor3()
     test2()
 }
 
 class MyStruct(rawPtr: NativePtr) : CStructVar(rawPtr) {
 
-    companion object : Type(16, 8)
+    companion object : Type(16, 8) {
+        fun create2() : MyStruct {
+            println ("Type::create")
+            return interpretPointed<MyStruct>(create().rawValue)
+        }
+    }
+
+    constructor() : this(create().rawValue) {
+        iPub = 24
+    }
+
     var iPub: Int
         get() = memberAt<IntVar>(8).value
         set(value) { memberAt<IntVar>(8).value = value }
@@ -25,10 +44,13 @@ class MyStruct(rawPtr: NativePtr) : CStructVar(rawPtr) {
 //        memcpy(this.ptr, create(), typeOf<MyStruct>().size.convert())
 //    }
 
-    fun foo(arg1: CValuesRef<TheStruct>? = null): Int {
+    fun foo(arg1: CValuesRef<MyStruct>? = null): Int {
         memScoped {
             return kniBridge_0(rawPtr, arg1?.getPointer(memScope).rawValue)
         }
+    }
+    fun foo(i: Int): Unit {
+        println("foo(i: Int = $i): Unit")
     }
 }
 @SymbolName("test_kniBridge0")
@@ -50,6 +72,13 @@ fun testCtor2() {
     memScoped {
         xs.foo()
     }
+    xs.foo(xs.ptr)
+    xs.foo(111)
+}
+
+fun testCtor3() {
+    println("testCtor3: MyStruct()")
+    val xs = MyStruct()
     xs.foo()
 }
 
@@ -65,7 +94,7 @@ fun test2() {
 
         aStruct.foo(null)
         aStruct.iPub = 37
-        aStruct.foo(null)
+        aStruct.foo()
     }
 
 

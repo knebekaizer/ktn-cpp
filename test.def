@@ -1,3 +1,5 @@
 headers = sample/h0.hpp
 headerFilter = sample/h0.hpp
 package = test
+compilerOpts = -std=c++14
+compilerOpts = -x c++
