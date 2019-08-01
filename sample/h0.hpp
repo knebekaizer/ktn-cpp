@@ -4,6 +4,11 @@
 class TheStruct
 {
 public:
+	TheStruct();
+	TheStruct(int i);
+	~TheStruct() = default;
+
+
 	int iPub = 42;
 
 	virtual int foo(const TheStruct*);
