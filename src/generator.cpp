@@ -151,6 +151,13 @@ bool ktn::WrapperGenerator::genWrapper(const Function& f)
 ostream& ktn::WrapperGenerator::genCxxDefinition(const Class& c)
 {
 	impl_ << "// @class " << c.fullName() << ":\n";
+
+	for (const Function& f : c.ctors) {
+		impl_ << "/* Constructor */ ";
+		genWrapper(f);
+		impl_ << '\n';
+	}
+
 	for (const Function& f : c.methods) {
 		if (!f.isInstanceMember()) impl_ << "/*static*/ ";
 		genWrapper(f);
