@@ -1,28 +1,13 @@
 #include "h0.hpp"
 
-/*
-
-class TheStruct
-{
-public:
-	int iPub;
-
-	int foo(const TheStruct*);
-	TheStruct* fct() const;
-
-private:
-	int iPriv;
-};
-
-TheStruct bar(TheStruct* s);
- */
-
 #include <iostream>
 
 using namespace std;
 
-extern "C" int32_t test_kniBridge_0 (void* p0, void* p1) {
-	return (int32_t)((TheStruct*)p0)->foo((TheStruct*)p1);
+namespace ns {
+
+void NoName::noNameMember() {
+	cout << __PRETTY_FUNCTION__ << endl;
 }
 
 int TheStruct::foo(const TheStruct* x) {
@@ -50,4 +35,16 @@ TheStruct bar(TheStruct* s) {
 
 TheStruct* create() {
 	return new TheStruct();
+}
+
+} // ns
+
+TheStruct* create() {
+	cout << __PRETTY_FUNCTION__ << " declared in global ns" << endl;
+	return nullptr;
+}
+
+::TheStruct* ns2::create() {
+	cout << __PRETTY_FUNCTION__ << " declared in ns2" << endl;
+	return nullptr;
 }

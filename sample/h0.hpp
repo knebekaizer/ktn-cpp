@@ -1,5 +1,5 @@
 
-//namespace ns {
+namespace ns {
 
 typedef class {
 public:
@@ -30,7 +30,9 @@ private:
 
 TheStruct bar(TheStruct* s);
 
-//} // ns
+TheStruct* create();
+
+} // ns
 
 namespace {
 ns::TheStruct* fooInAnonNamespace();
@@ -53,10 +55,4 @@ public:
 	void baz() const {}
 };
 
-}
-
-inline template <typename T> int funcTmpl() {
-	return 42;
-}
-
-template <typename T> int funcTmpl2();
+} // ns2

@@ -9,102 +9,54 @@ import test.*
 fun main() {
     val name = "You"
     println("Hey $name")
-    val theStruct = interpretPointed<TheStruct>(create().rawValue)
+    val theStruct = interpretPointed<ns__TheStruct>(ns__create().rawValue)
     theStruct.iPub = 21
     theStruct.foo(theStruct.ptr)
-    MyStruct.create2()
 
-//    val x = bar(null)
-//    val i = x.iPub
-//    testCtor()
+    test0();
+
     testCtor2()
-    testCtor3()
+//    testCtor3()
     test2()
 }
 
-class MyStruct(rawPtr: NativePtr) : CStructVar(rawPtr) {
-
-    companion object : Type(16, 8) {
-        fun create2() : MyStruct {
-            println ("Type::create")
-            return interpretPointed<MyStruct>(create().rawValue)
-        }
-    }
-
-    constructor() : this(create().rawValue) {
-        iPub = 24
-    }
-
-    var iPub: Int
-        get() = memberAt<IntVar>(8).value
-        set(value) { memberAt<IntVar>(8).value = value }
-
-//    init {
-//        iPub = 24
-//        memcpy(this.ptr, create(), typeOf<MyStruct>().size.convert())
-//    }
-
-    fun foo(arg1: CValuesRef<MyStruct>? = null): Int {
-        memScoped {
-            return kniBridge_0(rawPtr, arg1?.getPointer(memScope).rawValue)
-        }
-    }
-    fun foo(i: Int): Unit {
-        println("foo(i: Int = $i): Unit")
-    }
-}
-@SymbolName("test_kniBridge0")
-private external fun kniBridge_0(p0: NativePtr, p1: NativePtr): Int
-
 fun testCtor() {
     println("testCtor")
-    val cxx = nativeHeap.alloc<TheStruct>() {
-        memcpy(ptr, create(), typeOf<TheStruct>().size.convert()) // use placement new here
+    val cxx = nativeHeap.alloc<ns__TheStruct>() {
+        memcpy(ptr, ns__create(), typeOf<ns__TheStruct>().size.convert()) // use placement new here
     }
-//    memcpy(cxx.ptr, create(), typeOf<TheStruct>().size.convert()) // use placement new here
+//    memcpy(cxx.ptr, ns__create(), typeOf<TheStruct>().size.convert()) // use placement new here
     cxx.foo(null)
     nativeHeap.free(cxx)
 }
 
 fun testCtor2() {
-    println("testCtor2: MyStruct(create().rawValue)")
-    val xs = MyStruct(create().rawValue)
+    println("testCtor2: MyStruct(ns__create().rawValue)")
+    val xs = ns__TheStruct(ns__create().rawValue)
     memScoped {
-        xs.foo()
+        xs.foo(null)
     }
     xs.foo(xs.ptr)
-    xs.foo(111)
 }
-
+/*
 fun testCtor3() {
     println("testCtor3: MyStruct()")
     val xs = MyStruct()
     xs.foo()
 }
+*/
+fun test0() {
+    memScoped {
+        val aStruct = alloc<ns__NoName>()
+        aStruct.noNameMember()
+    }
+}
 
 fun test2() {
     println("test2")
-	val theS = bar(null)
-//    val cStruct = cValue<TheStruct> {
-//        iPub = 37
-//    }
-    memScoped {
-        val aStruct = alloc<MyStruct>()
-        memcpy(aStruct.ptr, create(), typeOf<TheStruct>().size.convert())
+	val x = ns__bar(null)
+//    val theS = interpretPointed<ns__TheStruct>(ns__bar(null).rawValue)
+//    theS.foo(null)
 
-        aStruct.foo(null)
-        aStruct.iPub = 37
-        aStruct.foo()
-    }
-
-
-//    cStruct.foo(null)
-    //    val aStruct = TheStruct(create().rawValue) // create().rawValue
-//    println(aStruct?.pointed?.iPub) // OK
-//    println(aStruct.iPub)
-//    println(get42())
-//    theS::class.members.forEach {it -> println(it.toString())}
-//    val anS = TheStruct(create())
-//	theS.foo(null)
-	println("theS.useContents {iPub} = ${theS.useContents {iPub}}" )
+	println("x.useContents {iPub} = ${x.useContents {iPub}}" )
 }
