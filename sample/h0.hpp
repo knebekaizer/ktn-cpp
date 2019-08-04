@@ -30,6 +30,8 @@ private:
 
 TheStruct bar(TheStruct* s);
 
+TheStruct* create();
+
 } // ns
 
 namespace {
@@ -53,10 +55,4 @@ public:
 	void baz() const {}
 };
 
-}
-
-inline template <typename T> int funcTmpl() {
-	return 42;
-}
-
-template <typename T> int funcTmpl2();
+} // ns2
