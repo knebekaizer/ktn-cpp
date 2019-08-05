@@ -13,11 +13,21 @@ fun main() {
     theStruct.iPub = 21
     theStruct.foo(theStruct.ptr)
 
-    test0();
+    testStatic()
+
+    test0()
+    testCtor()
+    testCtor1()
 
     testCtor2()
 //    testCtor3()
     test2()
+}
+
+fun testStatic() {
+    println("ns__TheStruct.s_fun() returns ${ns__TheStruct.s_fun()}")
+    println("ns__TheStruct.s_fun() returns ${ns__TheStruct.s_fun()}")
+    println("ns__TheStruct.s_fun() returns ${ns__TheStruct.s_fun()}")
 }
 
 fun testCtor() {
@@ -30,12 +40,28 @@ fun testCtor() {
     nativeHeap.free(cxx)
 }
 
+fun testCtor1() {
+    println("testCtor1: interpretPointed<ns__TheStruct>(ns__TheStruct.__create__().rawValue)")
+    val theStruct = interpretPointed<ns__TheStruct>(ns__TheStruct.__create__().rawValue)
+    theStruct.iPub = 33
+    theStruct.foo(theStruct.ptr)
+
+    println("testCtor1: ns__TheStruct(ns__TheStruct.__create__().rawValue)")
+    val xs = ns__TheStruct(ns__TheStruct.__create__().rawValue)
+    xs.foo(null)
+    xs.foo(xs.ptr)
+
+    println("testCtor1: ns__TheStruct(ns__TheStruct.__create__(1001).rawValue)")
+    val x2 = ns__TheStruct(ns__TheStruct.__create__(1001).rawValue)
+    x2.foo(null)
+    x2.foo(x2.ptr)
+
+}
+
 fun testCtor2() {
-    println("testCtor2: MyStruct(ns__create().rawValue)")
+    println("testCtor2: ns__TheStruct(ns__create().rawValue)")
     val xs = ns__TheStruct(ns__create().rawValue)
-    memScoped {
-        xs.foo(null)
-    }
+    xs.foo(null)
     xs.foo(xs.ptr)
 }
 /*

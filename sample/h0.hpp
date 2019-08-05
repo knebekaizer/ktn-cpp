@@ -8,6 +8,8 @@ public:
 
 class TheStruct {
 public:
+	static int s_fun();
+
 	TheStruct();
 
 	TheStruct(int i);

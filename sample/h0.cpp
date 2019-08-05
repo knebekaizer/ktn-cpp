@@ -7,7 +7,13 @@ using namespace std;
 namespace ns {
 
 void NoName::noNameMember() {
-	cout << __PRETTY_FUNCTION__ << endl;
+	cout << __PRETTY_FUNCTION__ << " invoked" << endl;
+}
+
+int TheStruct::s_fun() {
+	static int counter = 777;
+	cout << __PRETTY_FUNCTION__ << " invoked" << endl;
+	return counter++;
 }
 
 int TheStruct::foo(const TheStruct* x) {
