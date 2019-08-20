@@ -161,7 +161,6 @@ Entity::Entity(const Cursor& c)
 {}
 
 
-class Container;
 
 using Strings = vector<string>;
 
@@ -178,6 +177,39 @@ ostream& operator<<(ostream& os, Strings const& out) {
 	return os;
 }
 
+class Node;
+class Container;
+struct Namespace;
+struct Struct;
+struct Func;
+struct CXXMethod;
+struct Func;
+struct Var;
+struct Field;
+struct Enum_;
+
+
+struct Render {
+public:
+	virtual Render& render(const Node&) { return *this; };
+	virtual Render& render(const Container&);
+	virtual Render& render(const Struct& x);
+};
+
+struct Log : Render {
+	using Render::render;
+	Log& render(const Node& c) override;
+	Log& render(const Container& c) override;
+
+	struct Indenter{
+		Indenter(int& i) : indent(++i) {}
+		~Indenter() { --indent; }
+		int& indent;
+	};
+	int indent = 0;
+	vector<string> lines;
+};
+
 class Node {
 protected:
 	explicit Node() = default;
@@ -189,14 +221,12 @@ public:
 	Entity    data;
 	const Container* parent = nullptr;
 
-	Strings render() const { return render(""); }
-	virtual Strings render(string prefix) const {
-		return Strings(1, {prefix + name() + " : " + kindSpelling()});
-	}
+	virtual Render& render(Render& r) const { return r.render(*this); }
 
 	string usr() const { return data.usr; }
 	virtual string name() const { return data.name; };
 	virtual string kindSpelling() const = 0;
+
 	virtual ~Node() = default;
 };
 
@@ -218,6 +248,8 @@ public:
 	virtual void add(const Node* n) { children.emplace_back(n); }
 
 	using Node::render;
+	Render& render(Render& r) const override { return r.render(*this); }
+
 	Strings render(string prefix) const override {
 		auto out = this->Node::render(prefix);
 		for (auto const& x : children) {
@@ -230,10 +262,36 @@ public:
 	string kindSpelling() const override { return "NotSupported"; };
 };
 
+
+Log& Log::render(const Node& c) {
+	Indenter i(indent);
+	lines.push_back( string(indent-1, "  ") + c.name() + " : " + c.kindSpelling() );
+	return *this;
+}
+
+Log& Log::render(const Container& c) {
+	Indenter i(indent);
+	lines.push_back( string(indent-1, "  ") + c.name() + " : " + c.kindSpelling() );
+	return *this;
+}
+
+
 struct Func : Node {
 	Func(const Entity& data, const Container& p) : Node(data, p) {}
 
 	string kindSpelling() const override { return "Function"; };
+};
+
+struct CXXMethod : Func {
+	CXXMethod(const Entity& data, const Container& p) : Func(data, p) {}
+
+	string kindSpelling() const override { return "Function"; };
+};
+
+struct Constructor : Func {
+	Constructor(const Entity& data, const Container& p) : Func(data, p) {}
+
+	string kindSpelling() const override { return "Constructor"; };
 };
 
 struct Var : Node {
@@ -262,12 +320,14 @@ public:
 	Struct(const Entity& data, const Container& p) : Container(data, p) {}
 	string kindSpelling() const override { return "Struct"; };
 	string name() const override { return data.typeName; };
+	Render& render(Render& r) const override { return r.render(*this); }
 };
 
 class Tree : public Container {
 public:
 	string kindSpelling() const override { return "Root"; };
 };
+
 
 CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data)
 {
@@ -306,7 +366,7 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			break;
 
 		case CXCursor_Constructor:
-			if (auto x = new Func(cursor.data(), parent)) {
+			if (auto x = new Constructor(cursor.data(), parent)) {
 				parent.add(x);
 			}
 			break;
@@ -367,6 +427,20 @@ vector<string> ktn::getSupportedTypeNames(
 	return names;
 }
 
+
+class RenderCPP : public Render  {
+public:
+	void render(const Node&) {}
+
+	void render(const Struct& clazz) {
+		for (auto& x : clazz.children) x.render(*this);
+	}
+	void render(const Constructor& x);
+	void render(const Func& x);
+};
+
+
+
 vector<unique_ptr<TypeBase>> ktn::  getTypes(
 		const std::vector<std::string>& files,
 		int argc, char** argv,
@@ -388,7 +462,8 @@ vector<unique_ptr<TypeBase>> ktn::  getTypes(
 //
 		Tree tree;
 		clang_visitChildren(cursor, typesVisitor, &tree);
-		TraceX(tree.render());
+
+		cout << tree.render();
 
 
 		clang_disposeTranslationUnit(unit);
