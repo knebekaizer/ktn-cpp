@@ -5,6 +5,7 @@ import kotlinx.cinterop.*
 import platform.posix.*
 import platform.posix.memcpy
 import test.*
+import kotlin.test.*
 
 fun main() {
     val name = "You"

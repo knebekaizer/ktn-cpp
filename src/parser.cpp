@@ -13,6 +13,8 @@
 
 #include "trace.h"
 
+#pragma clang diagnostic ignored "-Wunused-function"
+
 using namespace std;
 using namespace ktn;
 
@@ -56,6 +58,8 @@ struct GetTypesStruct
 	const ktn::Options* options;
 };
 
+
+
 CXChildVisitResult getTypesVisitor(
 		CXCursor cursor, CXCursor parent, CXClientData client_data)
 {
@@ -68,6 +72,8 @@ CXChildVisitResult getTypesVisitor(
 	static WildCard path(data->options->path_filter);
 
 	if (!path.match(ktn::getFile(cursor))) return CXChildVisit_Recurse;  // filter out "external" types
+
+log_info << clang_getCursorKindSpelling(clang_getCursorKind(cursor));
 
 	std::unique_ptr<TypeBase> type;
 	switch (clang_getCursorKind(cursor)) {
@@ -117,6 +123,234 @@ log_trace << "Var: " <<  clang_getCursorSpelling(cursor) << "> "
 
 }  // namespace
 
+struct Cursor;
+
+struct Entity {
+	string          usr;
+	string          name;
+	CXCursorKind    kind = (CXCursorKind)0;
+	CXTypeKind      typeKind = CXType_Invalid;
+	string          typeName;
+
+	Entity() = default;
+	Entity(const Cursor& c);
+	
+	string sTypeKind() const { return convertAndDispose(clang_getTypeKindSpelling(typeKind)); }
+	string sKind() const { return convertAndDispose(clang_getCursorKindSpelling(kind)); }
+};
+
+
+struct Cursor : CXCursor {
+	Cursor(const CXCursor& c) : CXCursor(c) {}
+	
+	string spelling() const { return convertAndDispose(clang_getCursorSpelling(*this)); }
+	auto kind() const { return clang_getCursorKind(*this); }
+	auto type() const { return clang_getCursorType(*this); }
+	auto typeName() const { return convertAndDispose(clang_getTypeSpelling(type())); }
+	auto usr() const { return convertAndDispose(clang_getCursorUSR(*this)); }
+
+	Entity data() const { return Entity(*this); }
+};
+
+Entity::Entity(const Cursor& c)
+		: usr{ c.usr() }
+		, name { c.spelling() }
+		, kind { c.kind() }
+		, typeKind { c.type().kind }
+		, typeName { c.typeName() }
+{}
+
+
+class Container;
+
+using Strings = vector<string>;
+
+ostream& operator<<(ostream& os, Entity const& c) {
+	return os << c.name << " : " << c.typeName << " of " << c.sTypeKind();
+}
+
+ostream& operator<<(ostream& os, Cursor const& c) {
+	return os << c.data();
+}
+
+ostream& operator<<(ostream& os, Strings const& out) {
+	for (auto const& x : out) os << x << endl;
+	return os;
+}
+
+class Node {
+protected:
+	explicit Node() = default;
+public:
+	enum class Kind {Dummy, Namespace, Struct, Function, Variable} ;
+
+	Node(Entity n, const Container& p) : data(n), parent(&p) {}
+
+	Entity    data;
+	const Container* parent = nullptr;
+
+	Strings render() const { return render(""); }
+	virtual Strings render(string prefix) const {
+		return Strings(1, {prefix + name() + " : " + kindSpelling()});
+	}
+
+	string usr() const { return data.usr; }
+	virtual string name() const { return data.name; };
+	virtual string kindSpelling() const = 0;
+	virtual ~Node() = default;
+};
+
+
+ostream& operator<<(ostream& os, Node const& x) {
+	return os << x.Node::render("")[0];
+}
+
+
+class Container : public Node {
+protected:
+	explicit Container() = default;
+
+public:
+	Container(const Entity& data, const Container& p) : Node(data, p) {}
+	using Nodes = vector<unique_ptr<const Node>>;
+
+	Nodes children;
+	virtual void add(const Node* n) { children.emplace_back(n); }
+
+	using Node::render;
+	Strings render(string prefix) const override {
+		auto out = this->Node::render(prefix);
+		for (auto const& x : children) {
+			for (auto const& line : x->render(prefix + "    ") ) {
+				out.emplace_back(line);
+			}
+		}
+		return out;
+	}
+	string kindSpelling() const override { return "NotSupported"; };
+};
+
+struct Func : Node {
+	Func(const Entity& data, const Container& p) : Node(data, p) {}
+
+	string kindSpelling() const override { return "Function"; };
+};
+
+struct Var : Node {
+	Var(const Entity& data, const Container& p) : Node(data, p) {}
+	string kindSpelling() const override { return "Variable"; };
+};
+
+struct Field : Node {
+	Field(const Entity& data, const Container& p) : Node(data, p) {}
+	string kindSpelling() const override { return "Field"; };
+};
+
+struct Enum_ : Node {
+	Enum_(const Entity& data, const Container& p) : Node(data, p) {}
+	string kindSpelling() const override { return "Eum"; };
+};
+
+class Namespace : public Container {
+public:
+	Namespace(const Entity& data, const Container& p) : Container(data, p) {}
+	string kindSpelling() const override { return "Namespace"; };
+};
+
+class Struct : public Container {
+public:
+	Struct(const Entity& data, const Container& p) : Container(data, p) {}
+	string kindSpelling() const override { return "Struct"; };
+	string name() const override { return data.typeName; };
+};
+
+class Tree : public Container {
+public:
+	string kindSpelling() const override { return "Root"; };
+};
+
+CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data)
+{
+	assert(client_data);
+	const Cursor& cursor(c);
+	Container& parent(*reinterpret_cast<Container*>(client_data));
+
+	Cursor p = clang_getCursorSemanticParent(cursor);
+	if (p.usr() != parent.usr()) {
+		log_trace << "P: this{" << cursor << "}; parent{" << p << "}; container{" << parent << "}";
+	//	Trace2(p, parent); // Trace2(p.spelling(), parent.name());
+	}
+
+	switch (cursor.kind()) {
+		case CXCursor_Namespace:
+			if (auto x = new Namespace(cursor.data(), parent)) {
+				clang_visitChildren(cursor, typesVisitor, x);
+				parent.add(x);
+			}
+			break;
+
+		case CXCursor_ClassDecl:
+		case CXCursor_StructDecl:
+		case CXCursor_UnionDecl:
+			if (auto x = new Struct(cursor.data(), parent)) {
+				clang_visitChildren(cursor, typesVisitor, x);
+				parent.add(x);
+			}
+			break;
+
+		case CXCursor_ClassTemplate:
+			if (auto x = new Container(cursor.data(), parent)) {
+				clang_visitChildren(cursor, typesVisitor, x);
+				parent.add(x);
+			}
+			break;
+
+		case CXCursor_Constructor:
+			if (auto x = new Func(cursor.data(), parent)) {
+				parent.add(x);
+			}
+			break;
+
+		case CXCursor_CXXMethod:
+			if (auto x = new Func(cursor.data(), parent)) {
+				parent.add(x);
+			}
+			break;
+
+		case CXCursor_FunctionDecl:
+			if (auto x = new Func(cursor.data(), parent)) {
+				parent.add(x);
+			}
+			break;
+
+		case CXCursor_FunctionTemplate:
+			break;
+
+		case CXCursor_VarDecl:
+			if (auto x = new Var(cursor.data(), parent)) {
+				parent.add(x);
+			}
+			break;
+
+		case CXCursor_FieldDecl:
+			if (auto x = new Field(cursor.data(), parent)) {
+				parent.add(x);
+			}
+			break;
+
+		case CXCursor_EnumDecl:
+			if (auto x = new Enum_(cursor.data(), parent)) {
+				parent.add(x);
+			}
+			break;
+
+		default:
+			return CXChildVisit_Recurse;
+	}
+	return CXChildVisit_Continue;
+}
+
+
 vector<string> ktn::getSupportedTypeNames(
 		const std::vector<std::string>& files,
 		int argc, char** argv,
@@ -149,13 +383,18 @@ vector<unique_ptr<TypeBase>> ktn::  getTypes(
 
 		auto cursor = clang_getTranslationUnitCursor(unit);
 
-		GetTypesStruct data = { &results, &options };
-		clang_visitChildren(cursor, getTypesVisitor, &data);
+//		GetTypesStruct data = { &results, &options };
+//		clang_visitChildren(cursor, getTypesVisitor, &data);
+//
+		Tree tree;
+		clang_visitChildren(cursor, typesVisitor, &tree);
+		TraceX(tree.render());
+
 
 		clang_disposeTranslationUnit(unit);
 		clang_disposeIndex(index);
 	//	log_debug << "Loaded " << results.size() << " types";
-		if (gen) gen->genWrappers(results.begin() + last, results.end());
+//		if (gen) gen->genWrappers(results.begin() + last, results.end());
 		last = results.size();
 	}
 	return results;

@@ -6,8 +6,15 @@ public:
 	void noNameMember();
 } NoName;
 
+
 class TheStruct {
 public:
+	struct Inner {
+		struct Inner2 {
+			int x;
+		} inner2;
+	};
+
 	static int s_fun();
 
 	TheStruct();
@@ -56,5 +63,7 @@ template <typename T> class TmplClass {
 public:
 	void baz() const {}
 };
+
+template <class T> void funTmpl();
 
 } // ns2
