@@ -179,11 +179,12 @@ ostream& operator<<(ostream& os, Strings const& out) {
 
 class Node;
 class Container;
+struct Tree;
 struct Namespace;
 struct Struct;
 struct Func;
 struct CXXMethod;
-struct Func;
+struct Constructor;
 struct Var;
 struct Field;
 struct Enum_;
@@ -191,22 +192,17 @@ struct Enum_;
 
 struct Render {
 public:
-	virtual Render& render(const Node&) { return *this; };
-	virtual Render& render(const Container&);
-	virtual Render& render(const Struct& x);
-};
-
-struct Log : Render {
-	using Render::render;
-	Log& render(const Node& c) override;
-	Log& render(const Container& c) override;
-
-	struct Indenter{
-		Indenter(int& i) : indent(++i) {}
-		~Indenter() { --indent; }
-		int& indent;
-	};
-	int indent = 0;
+	virtual Render& renderNode(const Node&) { return *this; }
+	virtual Render& renderContainer(const Container& x) { return *this; }
+	virtual Render& renderTree(const Tree& x);
+	virtual Render& renderNamespace(const Namespace& x);
+	virtual Render& renderStruct(const Struct& x);
+	virtual Render& renderFunc(const Func& x);
+	virtual Render& renderCXXMethod(const CXXMethod& x);
+	virtual Render& renderConstructor(const Constructor& x);
+	virtual Render& renderVar(const Var& x);
+	virtual Render& renderField(const Field& x);
+	virtual Render& renderEnum_(const Enum_& x);
 	vector<string> lines;
 };
 
@@ -221,7 +217,7 @@ public:
 	Entity    data;
 	const Container* parent = nullptr;
 
-	virtual Render& render(Render& r) const { return r.render(*this); }
+	virtual Render& accept(Render& r) const { return r.renderNode(*this); }
 
 	string usr() const { return data.usr; }
 	virtual string name() const { return data.name; };
@@ -231,10 +227,12 @@ public:
 };
 
 
-ostream& operator<<(ostream& os, Node const& x) {
-	return os << x.Node::render("")[0];
+ostream& operator<<(ostream& os, Render const& r) {
+	for (auto& x : r.lines) {
+		os << x << endl;
+	}
+	return os;
 }
-
 
 class Container : public Node {
 protected:
@@ -247,32 +245,44 @@ public:
 	Nodes children;
 	virtual void add(const Node* n) { children.emplace_back(n); }
 
-	using Node::render;
-	Render& render(Render& r) const override { return r.render(*this); }
+	Render& accept(Render& r) const override { return r.renderContainer(*this); }
 
-	Strings render(string prefix) const override {
-		auto out = this->Node::render(prefix);
-		for (auto const& x : children) {
-			for (auto const& line : x->render(prefix + "    ") ) {
-				out.emplace_back(line);
-			}
-		}
-		return out;
-	}
 	string kindSpelling() const override { return "NotSupported"; };
 };
 
 
-Log& Log::render(const Node& c) {
-	Indenter i(indent);
-	lines.push_back( string(indent-1, "  ") + c.name() + " : " + c.kindSpelling() );
+struct Log : Render {
+	Log& renderNode(const Node& c) override;
+	Log& renderContainer(const Container& c) override;
+
+	struct Indenter{
+		Indenter(int& i) : indent(++i) {}
+		~Indenter() { --indent; }
+		int& indent;
+	};
+	int indent = 0;
+};
+
+Log& Log::renderNode(const Node& c) {
+	string prefix = string(indent * 4, ' ');
+	lines.push_back( prefix + "." + c.name() + " : " + c.kindSpelling() );
 	return *this;
 }
 
-Log& Log::render(const Container& c) {
-	Indenter i(indent);
-	lines.push_back( string(indent-1, "  ") + c.name() + " : " + c.kindSpelling() );
+Log& Log::renderContainer(const Container& x) {
+	renderNode(x); // prolog
+	for (auto& c : x.children) {
+		Indenter i(indent);
+		c->accept(*this);
+	}
+	// no epilog
 	return *this;
+}
+
+ostream& operator<<(ostream& os, Node const& x) {
+	Log log;
+	x.accept(log);
+	return os << log << endl;
 }
 
 
@@ -280,53 +290,70 @@ struct Func : Node {
 	Func(const Entity& data, const Container& p) : Node(data, p) {}
 
 	string kindSpelling() const override { return "Function"; };
+	Render& accept(Render& r) const override { return r.renderFunc(*this); }
 };
 
 struct CXXMethod : Func {
 	CXXMethod(const Entity& data, const Container& p) : Func(data, p) {}
 
 	string kindSpelling() const override { return "Function"; };
+	Render& accept(Render& r) const override { return r.renderCXXMethod(*this); }
 };
 
 struct Constructor : Func {
 	Constructor(const Entity& data, const Container& p) : Func(data, p) {}
-
 	string kindSpelling() const override { return "Constructor"; };
+	Render& accept(Render& r) const override { return r.renderConstructor(*this); }
 };
 
 struct Var : Node {
 	Var(const Entity& data, const Container& p) : Node(data, p) {}
 	string kindSpelling() const override { return "Variable"; };
+	Render& accept(Render& r) const override { return r.renderVar(*this); }
 };
 
 struct Field : Node {
 	Field(const Entity& data, const Container& p) : Node(data, p) {}
 	string kindSpelling() const override { return "Field"; };
+	Render& accept(Render& r) const override { return r.renderField(*this); }
 };
 
 struct Enum_ : Node {
 	Enum_(const Entity& data, const Container& p) : Node(data, p) {}
 	string kindSpelling() const override { return "Eum"; };
+	Render& accept(Render& r) const override { return r.renderEnum_(*this); }
 };
 
-class Namespace : public Container {
+struct Namespace : public Container {
 public:
 	Namespace(const Entity& data, const Container& p) : Container(data, p) {}
 	string kindSpelling() const override { return "Namespace"; };
+	Render& accept(Render& r) const override { return r.renderNamespace(*this); }
 };
 
-class Struct : public Container {
+struct Struct : public Container {
 public:
 	Struct(const Entity& data, const Container& p) : Container(data, p) {}
 	string kindSpelling() const override { return "Struct"; };
 	string name() const override { return data.typeName; };
-	Render& render(Render& r) const override { return r.render(*this); }
+	Render& accept(Render& r) const override { return r.renderStruct(*this); }
 };
 
-class Tree : public Container {
+struct Tree : public Container {
 public:
 	string kindSpelling() const override { return "Root"; };
+	Render& accept(Render& r) const override { return r.renderTree(*this); }
 };
+
+Render& Render::renderTree(const Tree& x) { return renderContainer(x); }
+Render& Render::renderNamespace(const Namespace& x) { return renderContainer(x); }
+Render& Render::renderStruct(const Struct& x) { return renderContainer(x); }
+Render& Render::renderFunc(const Func& x) { return renderNode(x); }
+Render& Render::renderCXXMethod(const CXXMethod& x) { return renderNode(x); }
+Render& Render::renderConstructor(const Constructor& x) { return renderNode(x); }
+Render& Render::renderVar(const Var& x) { return renderNode(x); }
+Render& Render::renderField(const Field& x) { return renderNode(x); }
+Render& Render::renderEnum_(const Enum_& x) { return renderNode(x); }
 
 
 CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data)
@@ -428,17 +455,6 @@ vector<string> ktn::getSupportedTypeNames(
 }
 
 
-class RenderCPP : public Render  {
-public:
-	void render(const Node&) {}
-
-	void render(const Struct& clazz) {
-		for (auto& x : clazz.children) x.render(*this);
-	}
-	void render(const Constructor& x);
-	void render(const Func& x);
-};
-
 
 
 vector<unique_ptr<TypeBase>> ktn::  getTypes(
@@ -463,7 +479,7 @@ vector<unique_ptr<TypeBase>> ktn::  getTypes(
 		Tree tree;
 		clang_visitChildren(cursor, typesVisitor, &tree);
 
-		cout << tree.render();
+		cout << tree;
 
 
 		clang_disposeTranslationUnit(unit);
