@@ -10,11 +10,6 @@
 
 namespace ktn {
 
-std::string convertAndDispose(const CXString& s);
-std::string buildFullName(CXCursor cursor);
-std::string getTypeSpelling(const CXType& type);
-std::string getFile(const CXCursor& cursor);
-
 bool isRecursivelyPublic(CXCursor cursor);
 //bool isRefType(const CXType& type);
 
@@ -41,14 +36,9 @@ private:
 	const std::string wildcard_;
 };
 
-bool isOperatorFunction(CXCursor cursor);
 
 } // namespace ktn
 
-
-std::ostream& operator<<(std::ostream& os, CXString&& s);
-
-std::ostream& operator<<(std::ostream& os, const CXType& t);
 
 
 #endif //REFLANG_PARSER_UTIL_HPP
