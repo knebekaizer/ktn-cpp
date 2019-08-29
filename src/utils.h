@@ -7,6 +7,21 @@
 
 #include <clang-c/Index.h>
 
+#include <iostream>
+#include <regex>
+
+
+struct Options {
+	std::regex include;
+	std::regex exclude;
+	std::string path_filter;  // wildcard pattern
+
+	std::string include_path;
+	std::string out_hpp_path;
+	std::string out_cpp_path;
+	//TODO: bool standalone = false;
+};
+
 std::ostream& operator<<(std::ostream& os, CXString&& s);
 std::ostream& operator<<(std::ostream& os, const CXType& t);
 

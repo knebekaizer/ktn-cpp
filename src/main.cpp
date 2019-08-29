@@ -3,9 +3,8 @@
 #include <string>
 
 #include "cmdargs.hpp"
-#include "parser.hpp"
-#include "parser.util.hpp"
-#include "generator.h"
+
+#include "parser_tree.h"
 
 #include "trace.h"
 
@@ -96,18 +95,10 @@ int main(int argc, char **argv)
 #endif
 	}
 
-	ktn::Options options;
+	Options options;
 	options.include = "^(" + filter_include->Get() + ")$";
 	options.exclude = "^(" + filter_exclude->Get() + ")$";
 	options.path_filter = path_filter->Get();
-
-	if (list_only->Get()) {
-		auto names = ktn::getSupportedTypeNames(files, argc, argv, options);
-		for (const auto& it : names) {
-			cout << it << endl;
-		}
-		return 0;
-	}
 
 	options.include_path = reflang_include->Get();
 
@@ -126,9 +117,8 @@ int main(int argc, char **argv)
 		c_stream = make_unique<ofstream>(options.out_cpp_path);
 		out_impl = c_stream.get();
 	}
-	ktn::WrapperGenerator gen(*out_decl, *out_impl);
 
-	auto types = ktn::getTypes(files, argc, argv, options, &gen);
+	parseTypes(files, argc, argv, options);
 
 	return 0;
 }

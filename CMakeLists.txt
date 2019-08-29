@@ -46,7 +46,7 @@ add_executable(
 	ktn-cpp
 	src/cmdargs.cpp src/cmdargs.hpp
 	src/main.cpp
-	src/parser_tree∂.cpp
+	src/parser_tree.cpp
 	src/utils.cpp
 
 #	src/parser.class.cpp src/parser.class.hpp

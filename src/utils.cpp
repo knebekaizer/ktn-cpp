@@ -1,17 +1,15 @@
-#include "parser.util.hpp"
-#include "types.hpp"
-
 #include <clang-c/Index.h>
 
+#include <iostream>
 #include <string>
 #include <unordered_set>
 #include <regex>
 
+#include "trace.h"
 
 using namespace std;
-using namespace ktn;
 
-string ktn::simpleMangling(string s, const char* prefix) {
+string simpleMangling(string s, const char* prefix) {
 	// sort of uniq (uncommon) prefix
 
 	if (prefix && *prefix) {
@@ -39,7 +37,7 @@ string ktn::simpleMangling(string s, const char* prefix) {
 	return s;
 }
 
-string ktn::convertAndDispose(const CXString &s) {
+string convertAndDispose(const CXString &s) {
 	auto cstr = clang_getCString(s);
 	string result = cstr ? cstr : "";
 	clang_disposeString(s);
@@ -58,12 +56,12 @@ std::ostream& operator<<(std::ostream &os, const CXType& t) {
 	return os;
 }
 
-bool ktn::isOperatorFunction(CXCursor cursor) {
+bool isOperatorFunction(CXCursor cursor) {
 	return convertAndDispose(clang_getCursorSpelling(cursor)).substr(0, 8) == "operator";
 }
 
 
-string ktn::buildFullName(CXCursor cursor) {
+string buildFullName(CXCursor cursor) {
 	string name;
 	while (clang_isDeclaration(clang_getCursorKind(cursor)) != 0) {
 		string cur = convertAndDispose(clang_getCursorSpelling(cursor));
@@ -79,20 +77,20 @@ string ktn::buildFullName(CXCursor cursor) {
 	return name;
 }
 
-string ktn::getTypeSpelling(const CXType& type) {
+string getTypeSpelling(const CXType& type) {
 	//TODO: unfortunately, this isn't good enough. It only works as long as the
 	// type is fully qualified.
 	return convertAndDispose(clang_getTypeSpelling(type));
 }
 
-string ktn::getFile(const CXCursor &cursor) {
+string getFile(const CXCursor &cursor) {
 	auto location = clang_getCursorLocation(cursor);
 	CXFile file;
 	clang_getSpellingLocation(location, &file, nullptr, nullptr, nullptr);
 	return convertAndDispose(clang_getFileName(file));
 }
 
-bool ktn::isRecursivelyPublic(CXCursor cursor) {
+bool isRecursivelyPublic(CXCursor cursor) {
 	while (clang_isDeclaration(clang_getCursorKind(cursor)) != 0) {
 		auto access = clang_getCXXAccessSpecifier(cursor);
 		if (access == CX_CXXPrivate || access == CX_CXXProtected) {
@@ -113,66 +111,5 @@ bool ktn::isRecursivelyPublic(CXCursor cursor) {
 	}
 
 	return true;
-}
-
-
-/*
- * Rationale: why not CxxType(CxType) constructor?
- * - Constructor is merely to _construct_ object from its details
- * - Here we need a _conversion_ from one domain (clang) to another (KTN)
- * - For the sake of _low coupling_ it's better to keep domains isolated, while this only function depends on both
- * (is it Dependency Inversion?)
- */
-CxxType ktn::buildCxxType(CXType type) {
-	auto canonical = clang_getCanonicalType(type);
-	auto real_type = canonical.kind == CXType_Invalid ? type : canonical;
-	CxxType::KIND kind = clang_isPODType(real_type) ? kind = CxxType::KIND::POD : CxxType::KIND::OTHER;
-	switch (real_type.kind) {
-		case CXType_Invalid:
-			kind = CxxType::KIND::INVALID; break;
-		case CXType_Void:
-			kind = CxxType::KIND::VOID; break;
-		case CXType_Pointer:
-			kind = CxxType::KIND::PTR; break;
-		case CXType_LValueReference:
-		case CXType_RValueReference:  // ???
-			kind = CxxType::KIND::REF; break;
-		default:
-			break;
-	}
-
-	// Signed int type is used. Return value may be negative in case of error;
-	// CxxType uses unsigned and considers 0 as invalid (erroneous) value.
-	auto size = real_type.kind > CXType_Void ? clang_Type_getSizeOf(type) : 0;
-	if (size < 0) {
-		//	log_warn << "size error: " << size << " for type " << type;
-		size = 0;
-	}
-
-	bool is_const = clang_isConstQualifiedType(real_type);
-	auto name = getTypeSpelling(type);
-	string cname;
-	string pointee;
-
-	switch (real_type.kind) {
-		case CXType_Elaborated:
-		case CXType_Record:
-			cname = simpleMangling(name);
-			break;
-		case CXType_Pointer:
-		case CXType_LValueReference:
-		case CXType_RValueReference:  // ???
-			cname = "void *"; // TODO shoud i use opaque C pointer type to get type checking at compile time?
-			pointee = getTypeSpelling(clang_getPointeeType(real_type));
-			break;
-		default:
-			break;
-	}
-	return CxxType(name, size, kind, is_const, cname, pointee);
-}
-
-CxxType ktn::buildCxxType(CXCursor cursor) {
-	assert(clang_isDeclaration(clang_getCursorKind(cursor))); // caller is responsible to use in the proper context only!
-	return buildCxxType(clang_getCursorType(cursor));
 }
 
