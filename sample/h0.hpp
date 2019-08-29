@@ -37,10 +37,6 @@ private:
 	int iPriv;
 };
 
-TheStruct bar(TheStruct* s);
-
-TheStruct* create();
-
 } // ns
 
 namespace {
@@ -67,3 +63,12 @@ public:
 template <class T> void funTmpl();
 
 } // ns2
+
+
+namespace ns {
+	TheStruct bar(TheStruct* s);
+	TheStruct* create();
+	struct NSAgain {
+		int nsAgainMember;
+	};
+}

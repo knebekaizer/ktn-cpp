@@ -58,7 +58,7 @@ struct Entity {
 	string          typeName;
 
 	Entity() = default;
-	Entity(const Cursor& c);
+	explicit Entity(const Cursor& c);
 
 	string sTypeKind() const { return convertAndDispose(clang_getTypeKindSpelling(typeKind)); }
 	string sKind() const { return convertAndDispose(clang_getCursorKindSpelling(kind)); }
@@ -165,10 +165,17 @@ protected:
 
 public:
 	Container(const Entity& data, const Container& p) : Node(data, p) {}
-	using Nodes = vector<unique_ptr<const Node>>;
+	using Nodes = vector<unique_ptr<Node>>;
 
 	Nodes children;
-	virtual void add(const Node* n) { children.emplace_back(n); }
+	virtual void add(Node* n) { children.emplace_back(n); }
+
+	Node* get(string usr) const {
+		for (auto& x : children) {
+			if (x->usr() == usr) return x.get();
+		}
+		return nullptr;
+	}
 
 	Render& accept(Render& r) const override { return r.renderContainer(*this); }
 
@@ -251,7 +258,9 @@ struct Enum : Node {
 
 struct Namespace : public Container {
 public:
-	Namespace(const Entity& data, const Container& p) : Container(data, p) {}
+	Namespace(const Entity& data, const Container& p) : Container(data, p) {
+		log_trace << "Namespace ctor: " << data.name;
+	}
 	string kindSpelling() const override { return "Namespace"; };
 	Render& accept(Render& r) const override { return r.renderNamespace(*this); }
 };
@@ -293,11 +302,15 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 	//	Trace2(p, parent); // Trace2(p.spelling(), parent.name());
 	}
 
+	auto entity = cursor.data();
 	switch (cursor.kind()) {
-		case CXCursor_Namespace:
-			if (auto x = new Namespace(cursor.data(), parent)) {
-				clang_visitChildren(cursor, typesVisitor, x);
-				parent.add(x);
+		case CXCursor_Namespace: {
+				if (auto x = parent.get(entity.usr)) {
+					clang_visitChildren(cursor, typesVisitor, x);
+				} else if (auto x = new Namespace(cursor.data(), parent)) {
+					clang_visitChildren(cursor, typesVisitor, x);
+					parent.add(x);
+				}
 			}
 			break;
 
