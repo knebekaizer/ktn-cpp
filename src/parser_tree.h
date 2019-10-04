@@ -9,9 +9,11 @@
 
 #include "utils.h"
 
+using Args = std::vector<const char*>;
+
 void parseTypes(
 		const std::vector<std::string>& files,
-		int argc, char** argv,
+		const Args& args,
 		const Options& options = Options());
 
 

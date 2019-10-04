@@ -5,7 +5,7 @@
 #ifndef KTN_CPP_UTILS_H
 #define KTN_CPP_UTILS_H
 
-#include <clang-c/Index.h>
+#include "clang-c/Index.h"
 
 #include <iostream>
 #include <regex>

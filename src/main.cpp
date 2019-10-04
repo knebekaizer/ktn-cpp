@@ -50,6 +50,9 @@ LOG_LEVEL::LOG_LEVEL gLogLevel = DEF_LOG_LEVEL;
 
 int main(int argc, char **argv)
 {
+    log_trace << "clang version = " << __clang_major__ << '.' << __clang_minor__ << '.' << __clang_patchlevel__;
+    TraceX(__clang_version__);
+
 	CmdArgs cmd_args;
 	auto log_level = cmd_args.Register<int>(
 			"--log-level",
@@ -87,6 +90,8 @@ int main(int argc, char **argv)
 			"");
 
 	vector<string> files = GetFilesToProcess(cmd_args, argc, argv);
+	Args args;
+	while (--argc >= 0) args.push_back(*argv++);
 
 	if (log_level->Get() >= 0) {
 		gLogLevel = (LOG_LEVEL::LOG_LEVEL)log_level->Get();
@@ -118,7 +123,7 @@ int main(int argc, char **argv)
 		out_impl = c_stream.get();
 	}
 
-	parseTypes(files, argc, argv, options);
+	parseTypes(files, args, options);
 
 	return 0;
 }

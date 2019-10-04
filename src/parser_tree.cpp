@@ -16,17 +16,17 @@ namespace
 {
 
 CXTranslationUnit parse(
-		CXIndex& index, const string& file, int argc, char** argv)
+		CXIndex& index, const string& file, const Args& args)
 {
 	CXTranslationUnit unit = clang_parseTranslationUnit(
 			index,
-			file.c_str(), argv, argc,
+			file.c_str(), &args[0], args.size(),
 			nullptr, 0,
 			CXTranslationUnit_None);
 	if (unit == nullptr)
 	{
 		cerr << "Unable to parse translation unit. Quitting." << endl;
-		exit(-1);
+	//	exit(-1);
 	}
 
 	auto diagnostics = clang_getNumDiagnostics(unit);
@@ -296,10 +296,10 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 	const Cursor& cursor(c);
 	Container& parent(*reinterpret_cast<Container*>(client_data));
 
-	Cursor p = clang_getCursorSemanticParent(cursor);
-	if (p.usr() != parent.usr()) {
-		log_trace << "P: this{" << cursor << "}; parent{" << p << "}; container{" << parent << "}";
-	//	Trace2(p, parent); // Trace2(p.spelling(), parent.name());
+	Cursor semanticParent = clang_getCursorSemanticParent(cursor);
+	if (semanticParent.usr() != parent.usr()) {
+		log_trace << "P: this{" << cursor << "}; parent{" << semanticParent << "}; container{" << parent << "}";
+	//	Trace2(semanticParent, parent); // Trace2(semanticParent.spelling(), parent.name());
 	}
 
 	auto entity = cursor.data();
@@ -359,6 +359,8 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 
 		case CXCursor_FieldDecl:
 			if (auto x = new Field(cursor.data(), parent)) {
+                auto offset = clang_Type_getOffsetOf(semanticParent.type(), x->name().c_str());
+                Trace2(x->name(), offset);
 				parent.add(x);
 			}
 			break;
@@ -379,13 +381,13 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 
 void  parseTypes(
 		const std::vector<std::string>& files,
-		int argc, char** argv,
-		const Options& options)
+        const Args& args,
+		const Options&  options)
 {
 	for (const auto& file : files)
 	{
-		CXIndex index = clang_createIndex(0, 0);
-		CXTranslationUnit unit = parse(index, file, argc, argv);
+		CXIndex index =  clang_createIndex(0, 0);
+		CXTranslationUnit unit = parse(index, file, args);
 
 		auto cursor = clang_getTranslationUnitCursor(unit);
 

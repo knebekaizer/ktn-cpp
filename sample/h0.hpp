@@ -1,4 +1,9 @@
 
+struct test0 {
+    int a;
+    char b[];
+};
+/*
 namespace ns {
 
 typedef class {
@@ -39,6 +44,7 @@ private:
 
 } // ns
 
+
 namespace {
 ns::TheStruct* fooInAnonNamespace();
 
@@ -72,3 +78,4 @@ namespace ns {
 		int nsAgainMember;
 	};
 }
+*/
