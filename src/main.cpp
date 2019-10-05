@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <algorithm>
 
 #include "cmdargs.hpp"
 
@@ -45,15 +46,98 @@ vector<string> GetFilesToProcess(CmdArgs &cmd_args, int &argc, char **&argv)
 }
 }
 
+#ifdef USE_RUNTIME_LOG_LEVEL
 LOG_LEVEL::LOG_LEVEL gLogLevel = DEF_LOG_LEVEL;
+#endif
 
+#include "cxxopts.hpp"
+
+std::string joinToString(const std::vector<std::string>& v, std::string sep = " ") {
+	ostringstream os;
+	auto n = v.size();
+	for (auto& x : v)  os << x << (--n ? sep : "");
+	return os.str();
+}
+
+using namespace cxxopts;
+
+class Config {
+public:
+	Config(int argc, char **argv);
+
+	std::vector<std::string> files;
+	std::vector<std::string> parse_options;
+};
+
+Config::Config(int argc, char **argv) {
+	cxxopts::Options options(argv[0], " - AST parser skeleton");
+
+	options
+		//	.allow_unrecognised_options()
+			.add_options()
+					("i,input", "Input files or \"-\" for stdin", value<std::vector<std::string>>()->default_value({"-"}))
+					("o,output", "Output file, default is stdout", cxxopts::value<std::string>()->default_value("-"))
+					("I,include", "Include path", value<std::vector<std::string>>(), "PATH")
+					("P,parse-options", "Compiler options to be directly sent to the clang parser", value<std::vector<std::string>>())
+					("l,log-level", "Log level, as digit or word [0:none, 1:fatal, 2:error, 3:warn, 4:info, 5:debug, 6:trace]", cxxopts::value<std::string>()->default_value("info"))
+					("help", "Print help");
+
+	options.parse_positional({"input"});
+
+	auto result = options.parse(argc, argv);
+
+	if (result.count("help")) {
+		std::cout << options.help({"", "Group"}) << std::endl;
+		exit(0);
+	}
+
+	if (result.count("log-level")) {
+#ifdef USE_RUNTIME_LOG_LEVEL
+		std::vector<std::string> opts = {"0", "none", "1", "fatal", "2", "error", "3", "warn", "4", "info", "5", "debug", "6", "trace"};
+		auto found = std::find(opts.begin(), opts.end(), result["log-level"].as<std::string>());
+		if (found != opts.end()) {
+			unsigned int level = (found - opts.begin()) / 2;
+			assert(level < LOG_LEVEL::LOG_LEVEL::invalid);
+			gLogLevel = (LOG_LEVEL::LOG_LEVEL)level;
+		}
+#else
+		log_warn << "command line option \"--log-level\" will be ignored because compile-time option USE_RUNTIME_LOG_LEVEL was not enabled";
+#endif
+	}
+
+	files = result["input"].as<std::vector<std::string>>();
+
+	if (result.count("include")) {
+		parse_options = result["include"].as<std::vector<std::string>>();
+	}
+	if (result.count("parse-options")) {
+		auto const& r = result["parse-options"].as<std::vector<std::string>>();
+		parse_options.insert(parse_options.end(), r.begin(), r.end());
+	}
+
+	log_trace << "files:\n    " << joinToString(files, "\n    ");
+	log_trace << "parse_options:\n    " << joinToString(parse_options, "\n    ");
+}
 
 int main(int argc, char **argv)
 {
-    log_trace << "clang version = " << __clang_major__ << '.' << __clang_minor__ << '.' << __clang_patchlevel__;
     TraceX(__clang_version__);
 
-	CmdArgs cmd_args;
+    try {
+    	Config config(argc, argv);
+    	exit(0);
+    } catch (const cxxopts::OptionException &e) {
+	    std::cerr << "error parsing options: " << e.what() << std::endl;
+	    exit(131);
+    } catch (const std::exception& e) {
+    	log_fatal << "General exception " << e.what();
+    	exit(130);
+    } catch (...) {
+	    log_fatal << "Unknown exception";
+	    exit(129);
+    }
+
+CmdArgs cmd_args;
 	auto log_level = cmd_args.Register<int>(
 			"--log-level",
 			"0:none, 1:fatal, 2:error, 3:warn, 4:info, 5:debug, 6:trace",
@@ -100,7 +184,7 @@ int main(int argc, char **argv)
 #endif
 	}
 
-	Options options;
+	::Options options;
 	options.include = "^(" + filter_include->Get() + ")$";
 	options.exclude = "^(" + filter_exclude->Get() + ")$";
 	options.path_filter = path_filter->Get();

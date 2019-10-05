@@ -1,9 +1,4 @@
 
-struct test0 {
-    int a;
-    char b[];
-};
-/*
 namespace ns {
 
 typedef class {
@@ -78,4 +73,3 @@ namespace ns {
 		int nsAgainMember;
 	};
 }
-*/
