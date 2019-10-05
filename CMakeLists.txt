@@ -6,7 +6,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -MMD" )
 
 SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS 1)  # this does not work? cmdline only
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)  # this does not work? cmdline only
 
 project (ktn-cpp)
 #enable_testing()

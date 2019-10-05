@@ -3,10 +3,11 @@ if (NOT CLANG_ROOT)
 endif ()
 
 #set(CMAKE_CPP_COMPILER "/Volumes/vdi/work/src/llvm-apple/clang-llvm-9.0.0-darwin-macos-DEBUG/bin/clang++")
-set(CXX "/Volumes/vdi/work/src/llvm-apple/clang-llvm-9.0.0-darwin-macos-DEBUG/bin/clang++")
+#set(CXX "/Volumes/vdi/work/src/llvm-apple/clang-llvm-9.0.0-darwin-macos-DEBUG/bin/clang++")
+set(CXX "/opt/llvm/bin/clang++")
 #set(CMAKE_CPP_COMPILER "/Volumes/vdi/.konan/dependencies/clang-llvm-apple-8.0.0-darwin-macos/bin/clang++")
 
-set(LLVM_CONFIG "/Volumes/vdi/work/src/llvm-apple/clang-llvm-9.0.0-darwin-macos-DEBUG/bin/llvm-config")
+set(LLVM_CONFIG "/opt/llvm/bin/llvm-config")
 #set(LLVM_CONFIG "/Volumes/vdi/.konan/dependencies/clang-llvm-apple-8.0.0-darwin-macos/bin/llvm-config")
 #set(LLVM_CONFIG "/opt/llvm_9/bin/llvm-config")
 #set(LLVM_CONFIG "/Volumes/vdi/work/src/llvm-project/llvm/_build/bin/llvm-config")
