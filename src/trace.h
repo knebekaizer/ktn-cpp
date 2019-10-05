@@ -63,36 +63,37 @@ inline std::string hexdump(const void* const buf, size_t len)
 //#define err_stream  utils::err_stream_helper().get()
 //#else
 #define tr_stream   utils::tr_stream_helper().get() << __func__ << "> "
-#define err_stream  utils::tr_stream_helper().get() << "[ERROR] "<<__FILE__<<"#"<<__LINE__<<":"<<__func__<<"> "
+#define err_stream  utils::tr_stream_helper().get() <<__FILE__<<"#"<<__LINE__<<":"<<__func__<<"> " << "[ERROR] "
 //#endif // NDEBUG
 
 namespace LOG_LEVEL {
-enum LOG_LEVEL {none = 0, fatal, error, warn, info, debug, trace};
+enum LOG_LEVEL {none = 0, fatal, error, warn, info, debug, trace, invalid};
 }
+//enum class LOG_LEVEL {none = 0, fatal, error, warn, info, debug, trace, invalid};
 
-// Compilation: CXXFLAGS=-DDEF_LOG_LEVEL=2 make
-//#define DEF_LOG_LEVEL gLogLevel;  // define this to have runtime option
+/*
+ * Compilation: CXXFLAGS=-DDEF_LOG_LEVEL=2 make
+ * or/and
+ * CXXFLAGS=-DUSE_RUNTIME_LOG_LEVEL
+ * and declare global variable as:
+ * LOG_LEVEL::LOG_LEVEL gLogLevel = DEF_LOG_LEVEL;
+*/
 #ifndef DEF_LOG_LEVEL
 #define DEF_LOG_LEVEL (LOG_LEVEL::trace)
-#endif
-
-
 #ifndef USE_RUNTIME_LOG_LEVEL
-#define log_trace   (DEF_LOG_LEVEL >= LOG_LEVEL::trace) && tr_stream
-#define log_debug   (DEF_LOG_LEVEL >= LOG_LEVEL::debug) && tr_stream
-#define log_info    (DEF_LOG_LEVEL >= LOG_LEVEL::info) && tr_stream
-#define log_warn    (DEF_LOG_LEVEL >= LOG_LEVEL::warn) && tr_stream << "[WARN] "
-#define log_error   (DEF_LOG_LEVEL >= LOG_LEVEL::error) && err_stream
-#define log_fatal   err_stream << "[FATAL] "
+#define LOG_LEVEL_ DEF_LOG_LEVEL
 #else
 extern LOG_LEVEL::LOG_LEVEL gLogLevel;
-#define log_trace   (DEF_LOG_LEVEL >= LOG_LEVEL::trace && gLogLevel >= LOG_LEVEL::trace) && tr_stream
-#define log_debug   (DEF_LOG_LEVEL >= LOG_LEVEL::debug && gLogLevel >= LOG_LEVEL::debug) && tr_stream
-#define log_info    (DEF_LOG_LEVEL >= LOG_LEVEL::info  && gLogLevel >= LOG_LEVEL::info)  && tr_stream
-#define log_warn    (DEF_LOG_LEVEL >= LOG_LEVEL::warn  && gLogLevel >= LOG_LEVEL::warn)  && tr_stream << "[WARN] "
-#define log_error   (DEF_LOG_LEVEL >= LOG_LEVEL::error && gLogLevel >= LOG_LEVEL::error) && err_stream
-#define log_fatal   (gLogLevel >= LOG_LEVEL::fatal) && err_stream << "[FATAL] "
-#endif
+#define LOG_LEVEL_ gLogLevel
+#endif // USE_RUNTIME_LOG_LEVEL
+#endif // DEF_LOG_LEVEL
+
+#define log_trace   (LOG_LEVEL_ >= LOG_LEVEL::trace) && tr_stream
+#define log_debug   (LOG_LEVEL_ >= LOG_LEVEL::debug) && tr_stream
+#define log_info    (LOG_LEVEL_ >= LOG_LEVEL::info) && tr_stream
+#define log_warn    (LOG_LEVEL_ >= LOG_LEVEL::warn) && tr_stream << "[WARN] "
+#define log_error   (LOG_LEVEL_ >= LOG_LEVEL::error) && err_stream
+#define log_fatal   (LOG_LEVEL_ >= LOG_LEVEL::error) && err_stream << "[FATAL] "
 
 
 #define TraceF      log_trace
