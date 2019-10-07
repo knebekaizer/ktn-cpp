@@ -18,9 +18,13 @@ namespace
 CXTranslationUnit parse(
 		CXIndex& index, const string& file, const Args& args)
 {
+	// stupid conversions char* to string and now back to char*
+	const char* tmp[args.size()];
+	transform(args.begin(), args.end(), tmp, [](auto const& s) {return s.c_str();});
+
 	CXTranslationUnit unit = clang_parseTranslationUnit(
 			index,
-			file.c_str(), &args[0], args.size(),
+			file.c_str(), &tmp[0], args.size(),
 			nullptr, 0,
 			CXTranslationUnit_None);
 	if (unit == nullptr)
@@ -381,8 +385,8 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 
 void  parseTypes(
 		const std::vector<std::string>& files,
-        const Args& args,
-		const Options&  options)
+        const Args& args //, const Options&  options
+		)
 {
 	for (const auto& file : files)
 	{

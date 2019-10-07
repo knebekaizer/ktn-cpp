@@ -1,4 +1,6 @@
 
+int xInt;
+
 namespace ns {
 
 typedef class {

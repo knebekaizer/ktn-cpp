@@ -79,14 +79,15 @@ enum LOG_LEVEL {none = 0, fatal, error, warn, info, debug, trace, invalid};
  * LOG_LEVEL::LOG_LEVEL gLogLevel = DEF_LOG_LEVEL;
 */
 #ifndef DEF_LOG_LEVEL
-#define DEF_LOG_LEVEL (LOG_LEVEL::trace)
+#define DEF_LOG_LEVEL (LOG_LEVEL::info)
+#endif // DEF_LOG_LEVEL
+
 #ifndef USE_RUNTIME_LOG_LEVEL
 #define LOG_LEVEL_ DEF_LOG_LEVEL
-#else
+#else   // USE_RUNTIME_LOG_LEVEL
 extern LOG_LEVEL::LOG_LEVEL gLogLevel;
 #define LOG_LEVEL_ gLogLevel
-#endif // USE_RUNTIME_LOG_LEVEL
-#endif // DEF_LOG_LEVEL
+#endif  // USE_RUNTIME_LOG_LEVEL
 
 #define log_trace   (LOG_LEVEL_ >= LOG_LEVEL::trace) && tr_stream
 #define log_debug   (LOG_LEVEL_ >= LOG_LEVEL::debug) && tr_stream
@@ -94,7 +95,6 @@ extern LOG_LEVEL::LOG_LEVEL gLogLevel;
 #define log_warn    (LOG_LEVEL_ >= LOG_LEVEL::warn) && tr_stream << "[WARN] "
 #define log_error   (LOG_LEVEL_ >= LOG_LEVEL::error) && err_stream
 #define log_fatal   (LOG_LEVEL_ >= LOG_LEVEL::error) && err_stream << "[FATAL] "
-
 
 #define TraceF      log_trace
 #define TraceX(a)   log_trace << #a << " = " << (a)

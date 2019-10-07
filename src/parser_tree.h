@@ -9,12 +9,12 @@
 
 #include "utils.h"
 
-using Args = std::vector<const char*>;
+using Args = std::vector<std::string>;
 
 void parseTypes(
 		const std::vector<std::string>& files,
-		const Args& args,
-		const Options& options = Options());
+		const Args& args //, const Options& options = Options()
+				);
 
 
 #endif //KTN_CPP_PARSER_TREE_H

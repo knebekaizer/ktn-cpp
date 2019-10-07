@@ -36,6 +36,7 @@ set(CMAKE_INSTALL_RPATH "/Volumes/vdi/work/src/llvm-project/clang-llvm-8.0.1-x86
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -v  -L/Volumes/vdi/work/src/llvm-project/clang/_build/lib/ -lclang")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -v ")
 
+include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CLANG_INCLUDEDIR})
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -76,5 +77,5 @@ target_link_libraries(ktn-cpp ${CLANG_LIBS})
 target_link_libraries(parseTest ${CLANG_LIBS})
 #target_link_libraries(parseTest clang)
 
-target_compile_definitions(ktn-cpp PUBLIC "-DUSE_RUNTIME_LOG_LEVEL")
+target_compile_definitions(ktn-cpp PUBLIC "-DUSE_RUNTIME_LOG_LEVEL -DDEF_LOG_LEVEL=6")
 
