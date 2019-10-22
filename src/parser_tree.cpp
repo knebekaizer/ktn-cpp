@@ -30,7 +30,7 @@ CXTranslationUnit parse(
 	if (unit == nullptr)
 	{
 		cerr << "Unable to parse translation unit. Quitting." << endl;
-	//	exit(-1);
+		exit(-1);
 	}
 
 	auto diagnostics = clang_getNumDiagnostics(unit);
@@ -43,7 +43,7 @@ CXTranslationUnit parse(
 			log_error << ">>> "
 				<< clang_formatDiagnostic(
 						diag, clang_defaultDiagnosticDisplayOptions());
-		//	exit(-1);
+			exit(-1);
 		}
 	}
 
@@ -52,25 +52,28 @@ CXTranslationUnit parse(
 
 }  // namespace
 
-struct Cursor;
+struct XCursor;
+
+string str(CXCursorKind k) { return convertAndDispose(clang_getCursorKindSpelling(k)); }
+string str(CXTypeKind k) { return convertAndDispose(clang_getTypeKindSpelling(k)); }
 
 struct Entity {
 	string          usr;
 	string          name;
-	CXCursorKind    kind = (CXCursorKind)0;
+	CXCursorKind    cursorKind = (CXCursorKind)0;
 	CXTypeKind      typeKind = CXType_Invalid;
 	string          typeName;
 
 	Entity() = default;
-	explicit Entity(const Cursor& c);
+	explicit Entity(const XCursor& c);
 
-	string sTypeKind() const { return convertAndDispose(clang_getTypeKindSpelling(typeKind)); }
-	string sKind() const { return convertAndDispose(clang_getCursorKindSpelling(kind)); }
+	string cursorKindS() const { return str(cursorKind); }
+	string typeKindS() const { return str(typeKind); }
 };
 
 
-struct Cursor : CXCursor {
-	Cursor(const CXCursor& c) : CXCursor(c) {}
+struct XCursor : CXCursor {
+	XCursor(const CXCursor& c) : CXCursor(c) {}
 
 	string spelling() const { return convertAndDispose(clang_getCursorSpelling(*this)); }
 	auto kind() const { return clang_getCursorKind(*this); }
@@ -81,10 +84,16 @@ struct Cursor : CXCursor {
 	Entity data() const { return Entity(*this); }
 };
 
-Entity::Entity(const Cursor& c)
+struct XType : CXType {
+	XType(const CXType& t) : CXType(t) {}
+	auto name() const { return convertAndDispose(clang_getTypeSpelling(*this)); }
+	auto kindS() const { return convertAndDispose(clang_getTypeKindSpelling(kind)); }
+};
+
+Entity::Entity(const XCursor& c)
 		: usr{ c.usr() }
 		, name { c.spelling() }
-		, kind { c.kind() }
+		, cursorKind {c.kind() }
 		, typeKind { c.type().kind }
 		, typeName { c.typeName() }
 {}
@@ -94,10 +103,10 @@ Entity::Entity(const Cursor& c)
 using Strings = vector<string>;
 
 ostream& operator<<(ostream& os, Entity const& c) {
-	return os << c.name << " : " << c.typeName << " of " << c.sTypeKind();
+	return os << c.name << " : " << c.typeName << " of " << c.typeKindS();
 }
 
-ostream& operator<<(ostream& os, Cursor const& c) {
+ostream& operator<<(ostream& os, XCursor const& c) {
 	return os << c.data();
 }
 
@@ -297,10 +306,10 @@ Render& Render::renderEnum(const Enum& x) { return renderNode(x); }
 CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data)
 {
 	assert(client_data);
-	const Cursor& cursor(c);
+	const XCursor& cursor(c);
 	Container& parent(*reinterpret_cast<Container*>(client_data));
 
-	Cursor semanticParent = clang_getCursorSemanticParent(cursor);
+	XCursor semanticParent = clang_getCursorSemanticParent(cursor);
 	if (semanticParent.usr() != parent.usr()) {
 		log_trace << "P: this{" << cursor << "}; parent{" << semanticParent << "}; container{" << parent << "}";
 	//	Trace2(semanticParent, parent); // Trace2(semanticParent.spelling(), parent.name());
@@ -357,6 +366,19 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 
 		case CXCursor_VarDecl:
 			if (auto x = new Var(cursor.data(), parent)) {
+				XType canonT = clang_getCanonicalType(cursor.type());
+				auto sizeOfT = clang_Type_getSizeOf(cursor.type());
+				if (canonT.kind == CXType_Vector) {
+					XType elemT = clang_getElementType(canonT);
+					TraceX(clang_getArraySize(canonT));
+					Trace2(x->name(), sizeOfT);
+					Trace2(elemT.name(), elemT.kindS());
+					Trace3(x->name(), x->data.cursorKindS(), x->data.typeKindS());
+					Trace3(x->name(), canonT.name(), canonT.kindS());
+				}
+				auto align = clang_Type_getAlignOf(cursor.type());
+				Trace3(x->name(), sizeOfT, align);
+
 				parent.add(x);
 			}
 			break;
@@ -364,7 +386,8 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 		case CXCursor_FieldDecl:
 			if (auto x = new Field(cursor.data(), parent)) {
                 auto offset = clang_Type_getOffsetOf(semanticParent.type(), x->name().c_str());
-                Trace2(x->name(), offset);
+                auto align = clang_Type_getAlignOf(cursor.type());
+                Trace3(x->name(), offset, align);
 				parent.add(x);
 			}
 			break;

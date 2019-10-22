@@ -1,5 +1,10 @@
+//#include "Accelerate/Accelerate.h"
 
-int xInt;
+typedef float                   vFloat          __attribute__ ((__vector_size__ (16)));
+vFloat vF16;
+__attribute__ ((__vector_size__ (8))) float vF8;
+
+__int128_t i128;
 
 namespace ns {
 
