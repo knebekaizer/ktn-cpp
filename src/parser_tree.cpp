@@ -366,16 +366,22 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 
 		case CXCursor_VarDecl:
 			if (auto x = new Var(cursor.data(), parent)) {
-				XType canonT = clang_getCanonicalType(cursor.type());
-				auto sizeOfT = clang_Type_getSizeOf(cursor.type());
-				if (canonT.kind == CXType_Vector) {
+				XType type = cursor.type();;
+				XType canonT = clang_getCanonicalType(type);
+				if (canonT.kind == CXTypeKind::CXType_Unexposed) canonT.kind = CXTypeKind::CXType_Vector;
+				TraceX((void*)type.data[0]);
+				TraceX(canonT.kind);
+
+				auto sizeOfT = clang_Type_getSizeOf(type);
+			//	if (canonT.kind == CXType_Vector || canonT.kind == CXType_ExtVector ) {
 					XType elemT = clang_getElementType(canonT);
-					TraceX(clang_getArraySize(canonT));
-					Trace2(x->name(), sizeOfT);
-					Trace2(elemT.name(), elemT.kindS());
 					Trace3(x->name(), x->data.cursorKindS(), x->data.typeKindS());
 					Trace3(x->name(), canonT.name(), canonT.kindS());
-				}
+					Trace3(x->name(), elemT.name(), elemT.kindS());
+					Trace2(x->name(), sizeOfT);
+					Trace2(x->name(), clang_getNumElements(canonT));
+					Trace2(x->name(), clang_getArraySize(canonT));
+			//	}
 				auto align = clang_Type_getAlignOf(cursor.type());
 				Trace3(x->name(), sizeOfT, align);
 
@@ -411,6 +417,7 @@ void  parseTypes(
         const Args& args //, const Options&  options
 		)
 {
+	TraceX(CINDEX_VERSION_STRING);
 	for (const auto& file : files)
 	{
 		CXIndex index =  clang_createIndex(0, 0);

@@ -1,8 +1,14 @@
+//#include "inttypes.h"
+//#include "simd/simd.h"
+
 //#include "Accelerate/Accelerate.h"
 
 typedef float                   vFloat          __attribute__ ((__vector_size__ (16)));
 vFloat vF16;
 __attribute__ ((__vector_size__ (8))) float vF8;
+
+typedef __attribute__((__ext_vector_type__(4))) float simd_float4;
+simd_float4 sf4;
 
 __int128_t i128;
 
