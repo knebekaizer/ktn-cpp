@@ -39,6 +39,8 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -v ")
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CLANG_INCLUDEDIR})
 
+include_directories("/Volumes/vdi/work/src/llvm-apple/clang/include/")
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 #set(LLVM_ENABLE_IDE "ON")

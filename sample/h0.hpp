@@ -4,11 +4,23 @@
 //#include "Accelerate/Accelerate.h"
 
 typedef float                   vFloat          __attribute__ ((__vector_size__ (16)));
-vFloat vF16;
+typedef vFloat extra;
+extra vF16;
+
 __attribute__ ((__vector_size__ (8))) float vF8;
 
 typedef __attribute__((__ext_vector_type__(4))) float simd_float4;
 simd_float4 sf4;
+
+typedef long long simd_long1;
+typedef __attribute__((__ext_vector_type__(8),__aligned__(16))) simd_long1 simd_long8;
+simd_long8 sl8;
+
+
+//typedef __attribute__((neon_vector_type(8))) char int8x8_t;
+//int8x8_t neon_8i8;
+//typedef __attribute__((neon_polyvector_type(16))) poly8_t poly8x16_t;
+//poly8x16_t neon_16poly8;
 
 __int128_t i128;
 
