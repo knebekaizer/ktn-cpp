@@ -79,7 +79,7 @@ enum LOG_LEVEL {none = 0, fatal, error, warn, info, debug, trace, invalid};
  * LOG_LEVEL::LOG_LEVEL gLogLevel = DEF_LOG_LEVEL;
 */
 #ifndef DEF_LOG_LEVEL
-#define DEF_LOG_LEVEL (LOG_LEVEL::info)
+#define DEF_LOG_LEVEL (LOG_LEVEL::trace)
 #endif // DEF_LOG_LEVEL
 
 #ifndef USE_RUNTIME_LOG_LEVEL
@@ -97,9 +97,20 @@ extern LOG_LEVEL::LOG_LEVEL gLogLevel;
 #define log_fatal   (LOG_LEVEL_ >= LOG_LEVEL::error) && err_stream << "[FATAL] "
 
 #define TraceF      log_trace
-#define TraceX(a)   log_trace << #a << " = " << (a)
-#define Trace2(a,b)   log_trace << #a << " = " << (a) <<"; " << #b << " = " << (b)
-#define Trace3(a,b,c)   log_trace << #a << " = " << (a) <<"; " << #b << " = " << (b) <<"; " << #c << " = " << (c)
+#define Trace0()    TraceF
+#define Trace1(a)   log_trace << #a << " = " << (a)
+#define Trace2(a,b)   Trace1(a) <<"; " << #b << " = " << (b)
+#define Trace3(a,b,c)   Trace2(a,b) <<"; " << #c << " = " << (c)
+#define Trace4(a,b,c,d)   Trace3(a,b,c) <<"; " << #d << " = " << (d)
+
+// Variadic tricks
+#if defined(__GNUC__) || defined(__clang__)
+#define _TRACE_GET_MACRO(_0,_1,_2,_3,_4,NAME,...) NAME
+#define TraceX(...) _TRACE_GET_MACRO(_0, ##__VA_ARGS__, Trace4, Trace3, Trace2, Trace1, Trace0)(__VA_ARGS__)
+#else
+#define _TRACE_GET_MACRO(_1,_2,_3,_4,NAME,...) NAME
+#define TraceX(...) _TRACE_GET_MACRO(__VA_ARGS__, Trace4, Trace3, Trace2, Trace1)(__VA_ARGS__)
+#endif
 
 //#undef LOG_ENABLED
 

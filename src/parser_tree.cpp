@@ -387,7 +387,7 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			if (auto x = new Field(cursor.data(), parent)) {
                 auto offset = clang_Type_getOffsetOf(semanticParent.type(), x->name().c_str());
                 auto align = clang_Type_getAlignOf(cursor.type());
-                Trace3(x->name(), offset, align);
+                TraceX(x->name(), offset, align);
 				parent.add(x);
 			}
 			break;
