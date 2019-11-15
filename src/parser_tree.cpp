@@ -19,7 +19,7 @@ int DisableABIBreakingChecks = 1;
 }
 
 namespace clng {
-
+// All the types below are POD and bitwise compatible with corresponding clang classes
 
 struct PointerIntPair {
 	intptr_t Value = 0;
@@ -37,93 +37,53 @@ struct ExtQualsTypeCommonBase {
 
 struct TypeBitfields {
 	/// TypeClass bitfield - Enum that specifies what subclass this belongs to.
-	enum { NumTypeBits = 18 };
-	union {
-		unsigned TC : 8;
-
-		struct {
-			unsigned : NumTypeBits;
-			unsigned VecKind : 3;
-
-			 /// The number of elements in the vector.
-			unsigned NumElements : 29 - NumTypeBits;
-		} VectorBits;
-	};
-
+	unsigned TC : 8;
+	unsigned : 24;
  };
 
 struct Type : public ExtQualsTypeCommonBase {
-    union {
-		TypeBitfields TypeBits;
-	};
-//	TypeClass getTypeClass() const { return static_cast<TypeClass>(TypeBits.TC); }
-	int getTypeClass() const { return static_cast<int>(TypeBits.TC); }
-	void setTypeClass(int tc) {
-	//	auto offset = (intptr_t)&TypeBits - (intptr_t)this;
-	//	((uint8_t*)this)[offset] = tc & 0xff;
-		TypeBits.TC = tc & 0xff;
-	}
+    TypeBitfields TypeBits;
+
+	uint8_t getTypeClass() const { return TypeBits.TC; }
+	void setTypeClass(uint8_t tc) { TypeBits.TC = tc; }
 };
-
-bool tryCast2Vector(CXType type) {
-	type = clang_getCanonicalType(type); // always safe
-
-	clng::ExtQualsTypeCommonBase *base = reinterpret_cast<clng::Type *>( reinterpret_cast<intptr_t>(type.data[0]) & ~0xf );
-//	clang::Type *base = reinterpret_cast<clng::Type *>( reinterpret_cast<intptr_t>(type.data[0]) & ~0xf );
-//	bool isVector = base->isExtVectorType();
-//	TraceX(isVector);
-
-	auto& typeClass_ = *reinterpret_cast<uint8_t *>(static_cast<ExtQualsTypeCommonBase*>(base->BaseType) + 1);
-	if (typeClass_ == 15) { // ExtVector
-		typeClass_ = 13;
-		return true;
-	}
-	return false;
-}
-
-
-bool castVector(CXType type) {
-	type = clang_getCanonicalType(type); // always safe
-
-	clng::ExtQualsTypeCommonBase* base = reinterpret_cast<clng::Type*>( reinterpret_cast<intptr_t>(type.data[0]) & ~0xf );
-	clng::Type* baseType = base->BaseType; // = * reinterpret_cast<clang::Type**>( type.data[0]) & ~0xf )
-
-	// extra <<
-	auto canonType = reinterpret_cast<clng::Type*>(baseType->CanonicalType.Value.Value & ~0xf);
-	auto canonTypeClass = canonType->BaseType->getTypeClass();
-	TraceX(canonTypeClass);
-	if (canonTypeClass == 15 || canonTypeClass == 13) {
-		Trace2(canonType->BaseType->TypeBits.VectorBits.VecKind, canonType->BaseType->TypeBits.VectorBits.NumElements);
-	}
-	// << end
-
-	if (baseType->getTypeClass() == 15) { // ExtVector
-		baseType->setTypeClass(13);
-		return true;
-	}
-	return false;
-}
 
 } // namesoace clng
 
+bool tryCast2Vector(CXType type) {
+	type = clang_getCanonicalType(type); // always safe
+	auto *base = reinterpret_cast<clng::Type *>( reinterpret_cast<intptr_t>(type.data[0]) & ~0xf );
+
+	if (base && base->getTypeClass() == 15) {
+		// This is ExtVectorType; pretend to be VectorType instead
+		base->setTypeClass(13);
+		return true;
+	}
+	return false;
+}
+//  Usage:
+//  val type = clang_getCursorType(cursor)
+//  if (type.kind == CXType_Vector || tryCast2Vector(type))  {
+//	    do_whatever_as_it_would_be_CXType_Vector(type)
+//  }
 
 using clang::QualType;
 
 static inline QualType GetQualType(CXType CT) {
-  return QualType::getFromOpaquePtr(CT.data[0]);
+	return QualType::getFromOpaquePtr(CT.data[0]);
 }
 
 long long clng_getNumElements(CXType CT) {
-  long long result = -1;
-  QualType T = GetQualType(CT);
-  const clang::Type *TP = T.getTypePtrOrNull();
+	long long result = -1;
+	QualType T = GetQualType(CT);
+	const clang::Type *TP = T.getTypePtrOrNull();
 
-  if (TP->isExtVectorType()) {
+	if (TP->isExtVectorType()) {
 
-  	TraceX(reinterpret_cast<const clng::Type*>(clang::cast<clang::VectorType> (TP)) ->getTypeClass());
-	  result = clang::cast<clang::VectorType> (TP)->getNumElements();
-  }
-  return result;
+//  	TraceX(reinterpret_cast<const clng::Type*>(clang::cast<clang::VectorType> (TP)) ->getTypeClass());
+		result = clang::cast<clang::VectorType>(TP)->getNumElements();
+	}
+	return result;
 }
 
 
@@ -427,7 +387,7 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 	XCursor semanticParent = clang_getCursorSemanticParent(cursor);
 	if (semanticParent.usr() != parent.usr()) {
 		log_trace << "P: this{" << cursor << "}; parent{" << semanticParent << "}; container{" << parent << "}";
-	//	Trace2(semanticParent, parent); // Trace2(semanticParent.spelling(), parent.name());
+	//	TraceX(semanticParent, parent); // TraceX(semanticParent.spelling(), parent.name());
 	}
 
 	auto entity = cursor.data();
@@ -483,42 +443,22 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			if (auto x = new Var(cursor.data(), parent)) {
 				XType type = cursor.type();;
 				XType canonT = clang_getCanonicalType(type);
-				Trace3(x->name(), canonT.name(), canonT.kindS());
+				TraceX(x->name(), canonT.name(), canonT.kindS());
 				auto clngNumElements = clng_getNumElements(canonT);
-				Trace2(x->name(), clngNumElements);
-
-				clng::castVector(type);
-
-//			//	if (canonT.kind == CXTypeKind::CXType_Unexposed) canonT.kind = CXTypeKind::CXType_Vector;
-//		//		Trace2(x->name(), (void*)canonT.data[0]);
-//				clng::ExtQualsTypeCommonBase* t = reinterpret_cast<clng::Type*>( reinterpret_cast<intptr_t>(type.data[0]) & ~0xf );
-//				Trace2(x->name(), t);
-//				clng::castVector(type);
-//
-//				const clng::Type* baseType = t->BaseType;// = * reinterpret_cast<clang::Type**>( type.data[0]) & ~0xf )
-//				Trace2(x->name(), baseType->getTypeClass());
-//				auto canonType = reinterpret_cast<clng::Type*>(t->CanonicalType.Value.Value);
-//				assert(canonType);
-//				auto canonTypeClass = canonType->BaseType->getTypeClass();
-//				Trace2(x->name(), canonType->BaseType->getTypeClass());
-//				if (canonTypeClass == 15) { // ExtVector
-//					canonType->BaseType->setTypeClass(13);
-//				}
-//				Trace2(x->name(), canonType->BaseType->getTypeClass());
-//				Trace2(x->name(), canonT.kind);
+				TraceX(x->name(), clngNumElements);
 
 				auto sizeOfT = clang_Type_getSizeOf(type);
-			//	if (canonT.kind == CXType_Vector || canonT.kind == CXType_ExtVector ) {
+				if (canonT.kind == CXType_Vector || tryCast2Vector(type))  {  // canonT.kind == CXType_ExtVector ) {
 					XType elemT = clang_getElementType(canonT);
-					Trace3(x->name(), x->data.cursorKindS(), x->data.typeKindS());
-					Trace3(x->name(), canonT.name(), canonT.kindS());
-					Trace3(x->name(), elemT.name(), elemT.kindS());
-					Trace2(x->name(), sizeOfT);
-					Trace2(x->name(), clang_getNumElements(canonT));
-					Trace2(x->name(), clang_getArraySize(canonT));
-			//	}
+					TraceX(x->name(), x->data.cursorKindS(), x->data.typeKindS());
+					TraceX(x->name(), canonT.name(), canonT.kindS());
+					TraceX(x->name(), elemT.name(), elemT.kindS());
+					TraceX(x->name(), sizeOfT);
+					TraceX(x->name(), clang_getNumElements(canonT));
+					TraceX(x->name(), clang_getArraySize(canonT));
+				}
 				auto align = clang_Type_getAlignOf(cursor.type());
-				Trace3(x->name(), sizeOfT, align);
+				TraceX(x->name(), sizeOfT, align);
 
 				parent.add(x);
 			}
@@ -528,7 +468,7 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			if (auto x = new Field(cursor.data(), parent)) {
                 auto offset = clang_Type_getOffsetOf(semanticParent.type(), x->name().c_str());
                 auto align = clang_Type_getAlignOf(cursor.type());
-                Trace3(x->name(), offset, align);
+                TraceX(x->name(), offset, align);
 				parent.add(x);
 			}
 			break;
