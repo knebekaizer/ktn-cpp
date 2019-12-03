@@ -11,24 +11,38 @@
 #include <regex>
 
 
-struct Options {
-	std::regex include;
-	std::regex exclude;
-	std::string path_filter;  // wildcard pattern
+class XString : CXString {
+public:
+	XString(const XString&) = delete;
+	XString(XString&& s) = delete;
+//	{
+//		*static_cast<CXString*>(this) = s;
+//		s.release();
+//	}
+	XString& operator=(const XString& other) = delete;
+	XString& operator=(XString&& other) = delete;
 
-	std::string include_path;
-	std::string out_hpp_path;
-	std::string out_cpp_path;
-	//TODO: bool standalone = false;
+	XString(const CXString& s) { *static_cast<CXString*>(this) = s; }
+
+	~XString() { if (data) clang_disposeString(*this); }
+
+	explicit XString(const CXCursor&);
+	explicit XString(const CXType&);
+	explicit XString(CXCursorKind);
+	explicit XString(CXTypeKind);
+
+	operator std::string() const { if (auto s = clang_getCString(*this)) return s; else return ""; }
+
+	bool empty() const { auto s = clang_getCString(*this); return !(s && *s); }
+private:
+	void release() { data = nullptr; }
 };
 
-std::ostream& operator<<(std::ostream& os, CXString&& s);
+
+inline auto& operator<<(std::ostream& os, const XString& s) { return os << std::string(s); }
 std::ostream& operator<<(std::ostream& os, const CXType& t);
 
-
-std::string convertAndDispose(const CXString& s);
 std::string buildFullName(CXCursor cursor);
-std::string getTypeSpelling(const CXType& type);
 std::string getFile(const CXCursor& cursor);
 
 bool isOperatorFunction(CXCursor cursor);

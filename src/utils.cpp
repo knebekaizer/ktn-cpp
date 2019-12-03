@@ -39,34 +39,27 @@ string simpleMangling(string s, const char* prefix) {
 	return s;
 }
 
-string convertAndDispose(const CXString &s) {
-	auto cstr = clang_getCString(s);
-	string result = cstr ? cstr : "";
-	clang_disposeString(s);
-	return result;
-}
 
-std::ostream& operator<<(std::ostream &os, CXString &&s) {
-	auto cstr = clang_getCString(s);
-	os << (cstr ? cstr : "");
-	clang_disposeString(s);
-	return os;
-}
+XString::XString(const CXCursor& x) : XString(clang_getCursorSpelling(x)) {}
+XString::XString(const CXType& x) : XString(clang_getTypeSpelling(x)) {}
+XString::XString(CXTypeKind x)  : XString(clang_getTypeKindSpelling(x)) {}
+XString::XString(CXCursorKind x)  : XString(clang_getCursorKindSpelling(x)) {}
+
 
 std::ostream& operator<<(std::ostream &os, const CXType& t) {
 	os << clang_getTypeSpelling(t) << "." << clang_getTypeKindSpelling(t.kind);
 	return os;
 }
 
-bool isOperatorFunction(CXCursor cursor) {
-	return convertAndDispose(clang_getCursorSpelling(cursor)).substr(0, 8) == "operator";
-}
+//bool isOperatorFunction(CXCursor cursor) {
+//	return convertAndDispose(clang_getCursorSpelling(cursor)).substr(0, 8) == "operator";
+//}
 
 
 string buildFullName(CXCursor cursor) {
 	string name;
 	while (clang_isDeclaration(clang_getCursorKind(cursor)) != 0) {
-		string cur = convertAndDispose(clang_getCursorSpelling(cursor));
+		string cur = XString(cursor);
 		if (name.empty()) {
 			name = cur;
 		} else {
@@ -79,17 +72,11 @@ string buildFullName(CXCursor cursor) {
 	return name;
 }
 
-string getTypeSpelling(const CXType& type) {
-	//TODO: unfortunately, this isn't good enough. It only works as long as the
-	// type is fully qualified.
-	return convertAndDispose(clang_getTypeSpelling(type));
-}
-
 string getFile(const CXCursor &cursor) {
 	auto location = clang_getCursorLocation(cursor);
 	CXFile file;
 	clang_getSpellingLocation(location, &file, nullptr, nullptr, nullptr);
-	return convertAndDispose(clang_getFileName(file));
+	return XString(clang_getFileName(file));
 }
 
 bool isRecursivelyPublic(CXCursor cursor) {
@@ -104,7 +91,7 @@ bool isRecursivelyPublic(CXCursor cursor) {
 		}
 
 		if (clang_getCursorKind(cursor) == CXCursor_Namespace
-		    && convertAndDispose(clang_getCursorSpelling(cursor)).empty()) {
+		    && XString(cursor).empty()) {
 			// Anonymous namespace.
 			return false;
 		}

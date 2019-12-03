@@ -54,8 +54,8 @@ CXTranslationUnit parse(
 
 struct XCursor;
 
-string str(CXCursorKind k) { return convertAndDispose(clang_getCursorKindSpelling(k)); }
-string str(CXTypeKind k) { return convertAndDispose(clang_getTypeKindSpelling(k)); }
+string str(CXCursorKind k) { return XString(k); }
+string str(CXTypeKind k) { return XString(k); }
 
 struct Entity {
 	string          usr;
@@ -75,19 +75,19 @@ struct Entity {
 struct XCursor : CXCursor {
 	XCursor(const CXCursor& c) : CXCursor(c) {}
 
-	string spelling() const { return convertAndDispose(clang_getCursorSpelling(*this)); }
+	string spelling() const { return XString(*this); }
 	auto kind() const { return clang_getCursorKind(*this); }
 	auto type() const { return clang_getCursorType(*this); }
-	auto typeName() const { return convertAndDispose(clang_getTypeSpelling(type())); }
-	auto usr() const { return convertAndDispose(clang_getCursorUSR(*this)); }
+	string typeName() const { return XString(type()); }
+	string usr() const { return XString(clang_getCursorUSR(*this)); }
 
 	Entity data() const { return Entity(*this); }
 };
 
 struct XType : CXType {
 	XType(const CXType& t) : CXType(t) {}
-	auto name() const { return convertAndDispose(clang_getTypeSpelling(*this)); }
-	auto kindS() const { return convertAndDispose(clang_getTypeKindSpelling(kind)); }
+	string name() const { return XString(*this); }
+	string kindS() const { return XString(kind); }
 };
 
 Entity::Entity(const XCursor& c)
@@ -97,7 +97,6 @@ Entity::Entity(const XCursor& c)
 		, typeKind { c.type().kind }
 		, typeName { c.typeName() }
 {}
-
 
 
 using Strings = vector<string>;
