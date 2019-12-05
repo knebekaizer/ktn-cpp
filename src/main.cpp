@@ -73,8 +73,8 @@ Config::Config(int argc, char **argv) {
 
 	files = opts["input"].as<std::vector<std::string>>();
 
-//	parse_options = opts["parse-options"].as<std::vector<std::string>>();
-	parse_options = {"-isystem"
+	parse_options = opts["parse-options"].as<std::vector<std::string>>();
+	parse_options.insert(cend(parse_options), {"-isystem"
 			//	, "/Volumes/vdi/.konan/dependencies/clang-llvm-apple-8.0.0-darwin-macos/lib/clang/8.0.0/include"
 				, "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"
 				, "-B/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
@@ -82,7 +82,8 @@ Config::Config(int argc, char **argv) {
 				, "--sysroot=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk"
 				, "-mmacosx-version-min=10.11"
 				, "-I/Library/Developer/CommandLineTools/usr/lib/clang/10.0.1/include/"
-				};
+				}
+	);
 
 	if (opts.count("include")) {
 		auto const& r = opts["include"].as<std::vector<std::string>>();

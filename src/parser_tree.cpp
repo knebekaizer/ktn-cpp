@@ -332,6 +332,7 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			if (auto x = new Struct(cursor.data(), parent)) {
 				clang_visitChildren(cursor, typesVisitor, x);
 				parent.add(x);
+				TraceX(cursor, *x);
 			}
 			break;
 
