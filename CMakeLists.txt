@@ -46,18 +46,6 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 #add_library(libreflang STATIC lib/reflang.hpp lib/reflang.cpp sample/h1.h)
 
-#add_executable(
-#	reflang
-#	src/cmdargs.cpp src/cmdargs.hpp
-#	src/main.cpp
-#	src/parser.class.cpp src/parser.class.hpp
-#	src/parser.cpp src/parser.hpp
-#	src/parser.enum.cpp src/parser.enum.hpp
-#	src/parser.function.cpp src/parser.function.hpp
-#	src/parser.util.cpp src/parser.util.hpp
-#	src/types.cpp src/types.hpp src/generator.h src/generator.cpp
-#)
-
 add_executable(
 	ktn-cpp
 	src/main.cpp
@@ -67,7 +55,6 @@ add_executable(
 
 add_executable(
 		files
-#		src/main.cpp
 		src/files.cpp
 )
 
@@ -84,3 +71,9 @@ target_link_libraries(parseTest ${CLANG_LIBS})
 target_compile_definitions(ktn-cpp PUBLIC "-DUSE_RUNTIME_LOG_LEVEL -DDEF_LOG_LEVEL=6")
 target_compile_definitions(files PUBLIC "-DUSE_RUNTIME_LOG_LEVEL -DDEF_LOG_LEVEL=6")
 
+include_directories(${CMAKE_SOURCE_DIR}/src)
+add_executable(
+		h0_test
+		sample/h0.cpp
+)
+target_compile_definitions(h0_test PUBLIC "-DMAIN")

@@ -41,7 +41,7 @@ Config::Config(int argc, char **argv) {
 		//	.allow_unrecognised_options()
 			.add_options()
 					("i,input", "Input files or \"-\" for stdin", value<std::vector<std::string>>()->default_value({"-"}))
-					("o,output", "Output file, default is stdout", cxxopts::value<std::string>()->default_value("-"))
+					("o,output", "Output file, default is stdout", value<std::string>()->default_value("-"))
 					("I,include", "Include path", value<std::vector<std::string>>()->default_value({}), "PATH")
 					("P,parse-options", "Compiler options to be directly sent to the clang parser", value<std::vector<std::string>>()->default_value({}))
 					("l,log-level", "Log level, as digit or word [0:none, 1:fatal, 2:error, 3:warn, 4:info, 5:debug, 6:trace]", cxxopts::value<std::string>())

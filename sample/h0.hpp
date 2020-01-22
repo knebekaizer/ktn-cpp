@@ -1,5 +1,16 @@
 //#include "Accelerate/Accelerate.h"
 
+namespace lamb {
+auto getLamb() {
+	static int incr = 0;
+	auto lamb = [&](int x) { return incr++ * x; };
+	return lamb;
+}
+auto lamb = getLamb();
+auto lamb_42 = lamb(42);
+auto lamb_2_42 = lamb(42);
+}
+
 typedef float                   vFloat          __attribute__ ((__vector_size__ (16)));
 vFloat vF16;
 __attribute__ ((__vector_size__ (8))) float vF8;

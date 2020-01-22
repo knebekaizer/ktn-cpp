@@ -377,7 +377,7 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 					Trace3(x->name(), canonT.name(), canonT.kindS());
 				}
 				auto align = clang_Type_getAlignOf(cursor.type());
-				Trace3(x->name(), sizeOfT, align);
+				TraceX(x->name(), sizeOfT, align, cursor.typeName());
 
 				parent.add(x);
 			}

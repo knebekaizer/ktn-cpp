@@ -1,6 +1,8 @@
+#pragma GCC diagnostic ignored "-Wunused-function"
 #include "h0.hpp"
 
 #include <iostream>
+
 
 using namespace std;
 
@@ -54,3 +56,14 @@ TheStruct* create() {
 	cout << __PRETTY_FUNCTION__ << " declared in ns2" << endl;
 	return nullptr;
 }
+
+#ifdef MAIN
+
+#include "trace.h"
+int main() {
+	using namespace lamb;
+	TraceX(lamb_42);
+	TraceX(lamb_2_42);
+	TraceX(getLamb()(3));
+}
+#endif // MAIN
