@@ -62,6 +62,7 @@ TheStruct* create() {
 #include "trace.h"
 int main() {
 	using namespace lamb;
+	log_info << "A stateful lambda is here:";
 	TraceX(lamb_42);
 	TraceX(lamb_2_42);
 	TraceX(getLamb()(3));

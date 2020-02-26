@@ -316,13 +316,13 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 
 	auto entity = cursor.data();
 	switch (cursor.kind()) {
-		case CXCursor_Namespace: {
-				if (auto x = parent.get(entity.usr)) {
-					clang_visitChildren(cursor, typesVisitor, x);
-				} else if (auto x = new Namespace(cursor.data(), parent)) {
-					clang_visitChildren(cursor, typesVisitor, x);
-					parent.add(x);
-				}
+		case CXCursor_Namespace:
+			if (cursor.spelling().empty()) break; // skip anonymous namespace
+			if (auto x = parent.get(entity.usr)) {  // namespace object already exists - reuse it
+				clang_visitChildren(cursor, typesVisitor, x);
+			} else if (auto x = new Namespace(cursor.data(), parent)) {  // create a new one
+				clang_visitChildren(cursor, typesVisitor, x);
+				parent.add(x);
 			}
 			break;
 
