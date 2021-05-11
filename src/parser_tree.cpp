@@ -43,7 +43,7 @@ CXTranslationUnit parse(
 				<< clang_formatDiagnostic(
 						diag, clang_defaultDiagnosticDisplayOptions());
 		}
-        exit(-1);
+		exit(-1);
 	}
 
 	return unit;
@@ -57,11 +57,11 @@ string str(CXCursorKind k) { return XString(k); }
 string str(CXTypeKind k) { return XString(k); }
 
 struct Entity {
-	string          usr;
-	string          name;
-	CXCursorKind    cursorKind = (CXCursorKind)0;
-	CXTypeKind      typeKind = CXType_Invalid;
-	string          typeName;
+	string			usr;
+	string			name;
+	CXCursorKind	cursorKind = (CXCursorKind)0;
+	CXTypeKind		typeKind = CXType_Invalid;
+	string			typeName;
 
 	Entity() = default;
 	explicit Entity(const XCursor& c);
@@ -72,7 +72,7 @@ struct Entity {
 
 
 struct XCursor : CXCursor {
-	XCursor(const CXCursor& c) : CXCursor(c) {}    // NOLINT(google-explicit-constructor)
+	XCursor(const CXCursor& c) : CXCursor(c) {}	   // NOLINT(google-explicit-constructor)
 
 	string spelling() const { return XString(*this); }
 	auto kind() const { return clang_getCursorKind(*this); }
@@ -84,7 +84,7 @@ struct XCursor : CXCursor {
 };
 
 struct XType : CXType {
-	XType(const CXType& t) : CXType(t) {}    // NOLINT(google-explicit-constructor)
+	XType(const CXType& t) : CXType(t) {}	 // NOLINT(google-explicit-constructor)
 	string name() const { return XString(*this); }
 	string kindS() const { return XString(kind); }
 };
@@ -150,7 +150,7 @@ public:
 
 	Node(const Entity& n, const Container& p) : data(n), parent(&p) {}
 
-	Entity    data;
+	Entity	  data;
 	const Container* parent = nullptr;
 
 	virtual Render& accept(Render& r) const { return r.renderNode(*this); }
@@ -279,16 +279,16 @@ public:
 
 class Registry {
 public:
-    Struct* getOrAdd( const Entity& data, const Container& p) {
-        auto [it, result] = registry_.try_emplace(data.usr, data, p);
-        return it->second.ptr;
-    }
+	Struct* getOrAdd( const Entity& data, const Container& p) {
+		auto [it, result] = registry_.try_emplace(data.usr, data, p);
+		return it->second.ptr;
+	}
 private:
-    struct StructPtr {
-        StructPtr(const Entity& data, const Container& p);
-//        operator Struct*() { return ptr; }
-        Struct* ptr;
-    };
+	struct StructPtr {
+		StructPtr(const Entity& data, const Container& p);
+//		  operator Struct*() { return ptr; }
+		Struct* ptr;
+	};
 	unordered_map<string, StructPtr> registry_;
 };
 
@@ -299,7 +299,7 @@ public:
 	string name() const override { return data.typeName; };
 	Render& accept(Render& r) const override { return r.renderStruct(*this); }
 
-    static Registry registry;
+	static Registry registry;
 };
 
 Registry::StructPtr::StructPtr(const Entity& data, const Container& p) : ptr(new Struct(data, p)) {}
@@ -333,15 +333,15 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 	if (semanticParent.usr() != parent.usr()) {
 		log_trace << "P: this{" << cursor << "}; parent{" << semanticParent << "}; container{" << parent << "}";
 	//	TraceX(semanticParent, parent);
-        TraceX(semanticParent.spelling(), parent.name());
+		TraceX(semanticParent.spelling(), parent.name());
 	}
 
 	auto entity = cursor.data();
 	switch (cursor.kind()) {
 		case CXCursor_Namespace:
-		    TraceX("Namespace", clang_Cursor_isAnonymous(cursor));
+			TraceX("Namespace", clang_Cursor_isAnonymous(cursor));
 			if (cursor.spelling().empty()) break; // skip anonymous namespace
-			if (Node* x = parent.get(entity.usr)) {  // namespace object already exists - reuse it
+			if (Node* x = parent.get(entity.usr)) {	 // namespace object already exists - reuse it
 				clang_visitChildren(cursor, typesVisitor, x);
 			} else if ((x = new Namespace(cursor.data(), parent))) {  // create a new one
 				clang_visitChildren(cursor, typesVisitor, x);
@@ -349,32 +349,32 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			}
 			break;
 
-        case CXCursor_TypedefDecl:
-            TraceX("TypedefDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
-            TraceX(cursor.data().typeKindS());
-            if (auto x = new Container(cursor.data(), parent)) {
-                parent.add(x);
-                clang_visitChildren(cursor, typesVisitor, x);
-            }
-            break;
+		case CXCursor_TypedefDecl:
+			TraceX("TypedefDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
+			TraceX(cursor.data().typeKindS());
+			if (auto x = new Container(cursor.data(), parent)) {
+				parent.add(x);
+				clang_visitChildren(cursor, typesVisitor, x);
+			}
+			break;
 
-//            return CXChildVisit_Recurse;
+//			  return CXChildVisit_Recurse;
 
 		case CXCursor_ClassDecl:
 		case CXCursor_StructDecl:
-        case CXCursor_UnionDecl: {
-            TraceX("Class/Struct/UnionDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
-//            if (Struct* x = Struct::registry.getOrAdd(cursor.data(), parent)) {
-            if (auto x = new Struct(cursor.data(), parent)) {
-                clang_visitChildren(cursor, typesVisitor, x);
-                parent.add(x);
-                auto align = clang_Type_getAlignOf(cursor.type());
-                auto size = clang_Type_getSizeOf(cursor.type());
-                TraceX(cursor, size, align);
-                TraceX(*x);
-            }
-            break;
-        }
+		case CXCursor_UnionDecl: {
+			TraceX("Class/Struct/UnionDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
+//			if (Struct* x = Struct::registry.getOrAdd(cursor.data(), parent)) {
+			if (auto x = new Struct(cursor.data(), parent)) {
+				clang_visitChildren(cursor, typesVisitor, x);
+				parent.add(x);
+				auto align = clang_Type_getAlignOf(cursor.type());
+				auto size = clang_Type_getSizeOf(cursor.type());
+				TraceX(cursor, size, align);
+				TraceX(*x);
+			}
+			break;
+		}
 
 		case CXCursor_ClassTemplate:
 			if (auto x = new Container(cursor.data(), parent)) {
@@ -424,13 +424,13 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			break;
 
 		case CXCursor_FieldDecl:
-            TraceX("FieldDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
+			TraceX("FieldDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
 			if (auto x = new Field(cursor.data(), parent)) {
-                auto offset = clang_Type_getOffsetOf(semanticParent.type(), x->name().c_str());
-                auto off2 = clang_Cursor_getOffsetOfField(cursor);
-                auto offsetBytes = offset / 8;
-                auto align = clang_Type_getAlignOf(cursor.type());
-                TraceX(x->name(), offsetBytes, off2 / 8, align);
+				auto offset = clang_Type_getOffsetOf(semanticParent.type(), x->name().c_str());
+				auto off2 = clang_Cursor_getOffsetOfField(cursor);
+				auto offsetBytes = offset / 8;
+				auto align = clang_Type_getAlignOf(cursor.type());
+				TraceX(x->name(), offsetBytes, off2 / 8, align);
 				parent.add(x);
 			}
 			break;
@@ -451,12 +451,12 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 
 void  parseTypes(
 		const std::vector<std::string>& files,
-        const Args& args //, const Options&  options
+		const Args& args //, const Options&	 options
 		)
 {
 	for (const auto& file : files)
 	{
-		CXIndex index =  clang_createIndex(0, 0);
+		CXIndex index =	 clang_createIndex(0, 0);
 		CXTranslationUnit unit = parse(index, file, args);
 
 		auto cursor = clang_getTranslationUnitCursor(unit);
