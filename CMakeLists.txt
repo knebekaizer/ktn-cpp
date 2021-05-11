@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 2.8.7)
 
 set(CMAKE_CXX_STANDARD 17)
 
+set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/" )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -MMD" )
 
 SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
@@ -38,6 +39,8 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -v ")
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CLANG_INCLUDEDIR})
+#include_directories("/opt/llvm-12/include/c++/v1")
+#include_directories("opt/llvm-12/include/c++/v1/experimental")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -69,7 +72,7 @@ target_link_libraries(parseTest ${CLANG_LIBS})
 #target_link_libraries(parseTest clang)
 
 target_compile_definitions(ktn-cpp PUBLIC "-DUSE_RUNTIME_LOG_LEVEL -DDEF_LOG_LEVEL=6")
-target_compile_definitions(files PUBLIC "-DUSE_RUNTIME_LOG_LEVEL -DDEF_LOG_LEVEL=6")
+#target_compile_definitions(files PUBLIC "-DUSE_RUNTIME_LOG_LEVEL -DDEF_LOG_LEVEL=6")
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
 add_executable(

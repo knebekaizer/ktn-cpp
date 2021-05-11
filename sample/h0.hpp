@@ -19,6 +19,7 @@ __int128_t i128;
 
 namespace ns {
 
+#pragma clang diagnostic ignored "-Wnon-c-typedef-for-linkage"
 typedef class {
 public:
 	void noNameMember();

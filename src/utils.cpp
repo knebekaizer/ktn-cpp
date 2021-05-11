@@ -11,6 +11,12 @@
 
 using namespace std;
 
+XString::XString(const CXCursor& x) : XString(clang_getCursorSpelling(x)) {}
+XString::XString(const CXType& x) : XString(clang_getTypeSpelling(x)) {}
+XString::XString(CXTypeKind x)  : XString(clang_getTypeKindSpelling(x)) {}
+XString::XString(CXCursorKind x)  : XString(clang_getCursorKindSpelling(x)) {}
+
+
 string simpleMangling(string s, const char* prefix) {
 	// sort of uniq (uncommon) prefix
 
@@ -38,13 +44,6 @@ string simpleMangling(string s, const char* prefix) {
 
 	return s;
 }
-
-
-XString::XString(const CXCursor& x) : XString(clang_getCursorSpelling(x)) {}
-XString::XString(const CXType& x) : XString(clang_getTypeSpelling(x)) {}
-XString::XString(CXTypeKind x)  : XString(clang_getTypeKindSpelling(x)) {}
-XString::XString(CXCursorKind x)  : XString(clang_getCursorKindSpelling(x)) {}
-
 
 std::ostream& operator<<(std::ostream &os, const CXType& t) {
 	os << clang_getTypeSpelling(t) << "." << clang_getTypeKindSpelling(t.kind);

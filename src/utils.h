@@ -19,7 +19,7 @@ public:
 	XString& operator=(const XString& other) = delete;
 	XString& operator=(XString&& other) = delete;
 
-	XString(const CXString& s) { *static_cast<CXString*>(this) = s; }
+	XString(const CXString& s) : CXString(s) {}
 
 	~XString() { clang_disposeString(*this); }
 
@@ -45,7 +45,7 @@ private:
 };
 
 
-inline auto& operator<<(std::ostream& os, const XString& s) { return os << std::string(s); }
+inline auto& operator<<(std::ostream& os, const XString& s) { return os << s.cstr(); }
 std::ostream& operator<<(std::ostream& os, const CXType& t);
 
 std::string buildFullName(CXCursor cursor);

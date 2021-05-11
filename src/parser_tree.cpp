@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <vector>
+#include <unordered_map>
+
 #include <clang-c/Index.h>
 
 #include "trace.h"
@@ -12,8 +14,7 @@
 using namespace std;
 //using namespace ktn;
 
-namespace
-{
+namespace {
 
 CXTranslationUnit parse(
 		CXIndex& index, const string& file, const Args& args)
@@ -24,7 +25,7 @@ CXTranslationUnit parse(
 
 	CXTranslationUnit unit = clang_parseTranslationUnit(
 			index,
-			file.c_str(), &tmp[0], args.size(),
+			file.c_str(), &tmp[0], (int)args.size(),
 			nullptr, 0,
 			CXTranslationUnit_None);
 	if (unit == nullptr)
@@ -34,17 +35,15 @@ CXTranslationUnit parse(
 	}
 
 	auto diagnostics = clang_getNumDiagnostics(unit);
-	if (diagnostics != 0)
-	{
+	if (diagnostics != 0) {
 		cerr << "> Diagnostics:" << endl;
-		for (int i = 0; i != diagnostics; ++i)
-		{
+		for (int i = 0; i != diagnostics; ++i) {
 			auto diag = clang_getDiagnostic(unit, i);
 			log_error << ">>> "
 				<< clang_formatDiagnostic(
 						diag, clang_defaultDiagnosticDisplayOptions());
-			exit(-1);
 		}
+        exit(-1);
 	}
 
 	return unit;
@@ -73,7 +72,7 @@ struct Entity {
 
 
 struct XCursor : CXCursor {
-	XCursor(const CXCursor& c) : CXCursor(c) {}
+	XCursor(const CXCursor& c) : CXCursor(c) {}    // NOLINT(google-explicit-constructor)
 
 	string spelling() const { return XString(*this); }
 	auto kind() const { return clang_getCursorKind(*this); }
@@ -85,7 +84,7 @@ struct XCursor : CXCursor {
 };
 
 struct XType : CXType {
-	XType(const CXType& t) : CXType(t) {}
+	XType(const CXType& t) : CXType(t) {}    // NOLINT(google-explicit-constructor)
 	string name() const { return XString(*this); }
 	string kindS() const { return XString(kind); }
 };
@@ -149,7 +148,7 @@ protected:
 public:
 	enum class Kind {Dummy, Namespace, Struct, Function, Variable} ;
 
-	Node(Entity n, const Container& p) : data(n), parent(&p) {}
+	Node(const Entity& n, const Container& p) : data(n), parent(&p) {}
 
 	Entity    data;
 	const Container* parent = nullptr;
@@ -180,9 +179,9 @@ public:
 	using Nodes = vector<unique_ptr<Node>>;
 
 	Nodes children;
-	virtual void add(Node* n) { children.emplace_back(n); }
+	virtual void add(Node* node) { children.emplace_back(node); }
 
-	Node* get(string usr) const {
+	Node* get(const string& usr) const {
 		for (auto& x : children) {
 			if (x->usr() == usr) return x.get();
 		}
@@ -191,31 +190,32 @@ public:
 
 	Render& accept(Render& r) const override { return r.renderContainer(*this); }
 
-	string kindSpelling() const override { return "NotSupported"; };
+//	string kindSpelling() const override { return "NotSupported"; };
+	string kindSpelling() const override { return data.typeKindS(); };
 };
 
 
 struct Log : Render {
-	Log& renderNode(const Node& c) override;
-	Log& renderContainer(const Container& c) override;
+	Log& renderNode(const Node& node) override;
+	Log& renderContainer(const Container& container) override;
 
 	struct Indenter{
-		Indenter(int& i) : indent(++i) {}
+		explicit Indenter(int& i) : indent(++i) {}
 		~Indenter() { --indent; }
 		int& indent;
 	};
 	int indent = 0;
 };
 
-Log& Log::renderNode(const Node& c) {
+Log& Log::renderNode(const Node& node) {
 	string prefix = string(indent * 4, ' ');
-	lines.push_back( prefix + "." + c.name() + " : " + c.kindSpelling() );
+	lines.push_back( prefix + "." + node.name() + " : " + node.kindSpelling() );
 	return *this;
 }
 
-Log& Log::renderContainer(const Container& x) {
-	renderNode(x); // prolog
-	for (auto& c : x.children) {
+Log& Log::renderContainer(const Container& container) {
+	renderNode(container); // prolog
+	for (auto& c : container.children) {
 		Indenter i(indent);
 		c->accept(*this);
 	}
@@ -277,13 +277,34 @@ public:
 	Render& accept(Render& r) const override { return r.renderNamespace(*this); }
 };
 
+class Registry {
+public:
+    Struct* getOrAdd( const Entity& data, const Container& p) {
+        auto [it, result] = registry_.try_emplace(data.usr, data, p);
+        return it->second.ptr;
+    }
+private:
+    struct StructPtr {
+        StructPtr(const Entity& data, const Container& p);
+//        operator Struct*() { return ptr; }
+        Struct* ptr;
+    };
+	unordered_map<string, StructPtr> registry_;
+};
+
 struct Struct : public Container {
 public:
 	Struct(const Entity& data, const Container& p) : Container(data, p) {}
 	string kindSpelling() const override { return "Struct"; };
 	string name() const override { return data.typeName; };
 	Render& accept(Render& r) const override { return r.renderStruct(*this); }
+
+    static Registry registry;
 };
+
+Registry::StructPtr::StructPtr(const Entity& data, const Container& p) : ptr(new Struct(data, p)) {}
+Registry Struct::registry;
+
 
 struct Tree : public Container {
 public:
@@ -311,30 +332,49 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 	XCursor semanticParent = clang_getCursorSemanticParent(cursor);
 	if (semanticParent.usr() != parent.usr()) {
 		log_trace << "P: this{" << cursor << "}; parent{" << semanticParent << "}; container{" << parent << "}";
-	//	Trace2(semanticParent, parent); // Trace2(semanticParent.spelling(), parent.name());
+	//	TraceX(semanticParent, parent);
+        TraceX(semanticParent.spelling(), parent.name());
 	}
 
 	auto entity = cursor.data();
 	switch (cursor.kind()) {
 		case CXCursor_Namespace:
+		    TraceX("Namespace", clang_Cursor_isAnonymous(cursor));
 			if (cursor.spelling().empty()) break; // skip anonymous namespace
-			if (auto x = parent.get(entity.usr)) {  // namespace object already exists - reuse it
+			if (Node* x = parent.get(entity.usr)) {  // namespace object already exists - reuse it
 				clang_visitChildren(cursor, typesVisitor, x);
-			} else if (auto x = new Namespace(cursor.data(), parent)) {  // create a new one
+			} else if ((x = new Namespace(cursor.data(), parent))) {  // create a new one
 				clang_visitChildren(cursor, typesVisitor, x);
 				parent.add(x);
 			}
 			break;
 
+        case CXCursor_TypedefDecl:
+            TraceX("TypedefDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
+            TraceX(cursor.data().typeKindS());
+            if (auto x = new Container(cursor.data(), parent)) {
+                parent.add(x);
+                clang_visitChildren(cursor, typesVisitor, x);
+            }
+            break;
+
+//            return CXChildVisit_Recurse;
+
 		case CXCursor_ClassDecl:
 		case CXCursor_StructDecl:
-		case CXCursor_UnionDecl:
-			if (auto x = new Struct(cursor.data(), parent)) {
-				clang_visitChildren(cursor, typesVisitor, x);
-				parent.add(x);
-				TraceX(cursor, *x);
-			}
-			break;
+        case CXCursor_UnionDecl: {
+            TraceX("Class/Struct/UnionDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
+//            if (Struct* x = Struct::registry.getOrAdd(cursor.data(), parent)) {
+            if (auto x = new Struct(cursor.data(), parent)) {
+                clang_visitChildren(cursor, typesVisitor, x);
+                parent.add(x);
+                auto align = clang_Type_getAlignOf(cursor.type());
+                auto size = clang_Type_getSizeOf(cursor.type());
+                TraceX(cursor, size, align);
+                TraceX(*x);
+            }
+            break;
+        }
 
 		case CXCursor_ClassTemplate:
 			if (auto x = new Container(cursor.data(), parent)) {
@@ -371,8 +411,8 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 				if (canonT.kind == CXType_Vector) {
 					XType elemT = clang_getElementType(canonT);
 					TraceX(clang_getArraySize(canonT));
-					Trace2(x->name(), sizeOfT);
-					Trace2(elemT.name(), elemT.kindS());
+					TraceX(x->name(), sizeOfT);
+					TraceX(elemT.name(), elemT.kindS());
 					Trace3(x->name(), x->data.cursorKindS(), x->data.typeKindS());
 					Trace3(x->name(), canonT.name(), canonT.kindS());
 				}
@@ -384,10 +424,13 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			break;
 
 		case CXCursor_FieldDecl:
+            TraceX("FieldDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
 			if (auto x = new Field(cursor.data(), parent)) {
                 auto offset = clang_Type_getOffsetOf(semanticParent.type(), x->name().c_str());
+                auto off2 = clang_Cursor_getOffsetOfField(cursor);
+                auto offsetBytes = offset / 8;
                 auto align = clang_Type_getAlignOf(cursor.type());
-                TraceX(x->name(), offset, align);
+                TraceX(x->name(), offsetBytes, off2 / 8, align);
 				parent.add(x);
 			}
 			break;
