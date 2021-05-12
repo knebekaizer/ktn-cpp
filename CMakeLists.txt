@@ -57,11 +57,6 @@ add_executable(
 )
 
 add_executable(
-		files
-		src/files.cpp
-)
-
-add_executable(
 		parseTest
 		src/parseTest.cpp
 		src/utils.cpp

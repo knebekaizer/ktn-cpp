@@ -98,7 +98,7 @@ Entity::Entity(const XCursor& c)
 {}
 
 
-using Strings = vector<string>;
+//using Strings = vector<string>;
 
 ostream& operator<<(ostream& os, Entity const& c) {
 	return os << c.name << " : " << c.typeName << " of " << c.typeKindS();
@@ -108,10 +108,10 @@ ostream& operator<<(ostream& os, XCursor const& c) {
 	return os << c.data();
 }
 
-ostream& operator<<(ostream& os, Strings const& out) {
-	for (auto const& x : out) os << x << endl;
-	return os;
-}
+//ostream& operator<<(ostream& os, Strings const& out) {
+//	for (auto const& x : out) os << x << endl;
+//	return os;
+//}
 
 class Node;
 class Container;
@@ -157,15 +157,21 @@ public:
 
 	string usr() const { return data.usr; }
 	virtual string name() const { return data.name; };
-	virtual string kindSpelling() const = 0;
+
+//	virtual string kindSpelling() const = 0;
+	virtual string kindSpelling() const { return data.typeKindS(); };
 
 	virtual ~Node() = default;
 };
 
 
 ostream& operator<<(ostream& os, Render const& r) {
-	for (auto& x : r.lines) {
-		os << x << endl;
+	// No `endl` after last line
+	if (!r.lines.empty()) {
+		os << r.lines[0];
+		for_each(r.lines.cbegin() + 1, r.lines.cend(), [&os](auto& x){
+			os << endl << x;
+		});
 	}
 	return os;
 }
@@ -176,21 +182,23 @@ protected:
 
 public:
 	Container(const Entity& data, const Container& p) : Node(data, p) {}
-	using Nodes = vector<unique_ptr<Node>>;
+
+	// FIXME: memory leak. I want unique_ptr for all Node types but shared_ptr for cached ones (see Struct::registy)
+//	using Nodes = vector<unique_ptr<Node>>;
+	using Nodes = vector<Node*>;
 
 	Nodes children;
 	virtual void add(Node* node) { children.emplace_back(node); }
 
 	Node* get(const string& usr) const {
 		for (auto& x : children) {
-			if (x->usr() == usr) return x.get();
+			if (x->usr() == usr) return x; // x.get();
 		}
 		return nullptr;
 	}
 
 	Render& accept(Render& r) const override { return r.renderContainer(*this); }
 
-//	string kindSpelling() const override { return "NotSupported"; };
 	string kindSpelling() const override { return data.typeKindS(); };
 };
 
@@ -226,12 +234,15 @@ Log& Log::renderContainer(const Container& container) {
 ostream& operator<<(ostream& os, Node const& x) {
 	Log log;
 	x.accept(log);
-	return os << log << endl;
+//	return os << log << endl;
+	return os << log;
 }
 
 
-struct Function : Node {
-	Function(const Entity& data, const Container& p) : Node(data, p) {}
+//struct Function : Node {
+//	Function(const Entity& data, const Container& p) : Node(data, p) {}
+struct Function : Container {
+	Function(const Entity& data, const Container& p) : Container(data, p) {}
 
 	string kindSpelling() const override { return "Function"; };
 	Render& accept(Render& r) const override { return r.renderFunc(*this); }
@@ -279,14 +290,15 @@ public:
 
 class Registry {
 public:
-	Struct* getOrAdd( const Entity& data, const Container& p) {
+	Struct* getOrAdd(const Entity& data, const Container& p) {
 		auto [it, result] = registry_.try_emplace(data.usr, data, p);
+		TraceX(result, registry_.size(), data.name, data.typeName);
+		assert(it != registry_.end());
 		return it->second.ptr;
 	}
 private:
 	struct StructPtr {
 		StructPtr(const Entity& data, const Container& p);
-//		  operator Struct*() { return ptr; }
 		Struct* ptr;
 	};
 	unordered_map<string, StructPtr> registry_;
@@ -315,7 +327,7 @@ public:
 Render& Render::renderTree(const Tree& x) { return renderContainer(x); }
 Render& Render::renderNamespace(const Namespace& x) { return renderContainer(x); }
 Render& Render::renderStruct(const Struct& x) { return renderContainer(x); }
-Render& Render::renderFunc(const Function& x) { return renderNode(x); }
+Render& Render::renderFunc(const Function& x) { return renderContainer(x); }// { return renderNode(x); }
 Render& Render::renderCXXMethod(const CXXMethod& x) { return renderNode(x); }
 Render& Render::renderConstructor(const Constructor& x) { return renderNode(x); }
 Render& Render::renderVar(const Var& x) { return renderNode(x); }
@@ -323,18 +335,31 @@ Render& Render::renderField(const Field& x) { return renderNode(x); }
 Render& Render::renderEnum(const Enum& x) { return renderNode(x); }
 
 
+CXVisitorResult fieldsVisitor(CXCursor c, CXClientData client_data) {
+	assert(client_data);
+	const XCursor& cursor(c);
+//	Container& parent(*reinterpret_cast<Container*>(client_data));
+//	auto entity = cursor.data();
+	switch (cursor.kind()) {
+		default:
+			TraceX(cursor, clang_isDeclaration(cursor.kind()), clang_Cursor_isAnonymous(cursor), clang_Cursor_isAnonymousRecordDecl(cursor));
+			TraceX(clang_Cursor_isAnonymousRecordDecl(clang_getTypeDeclaration(cursor.type())));
+	}
+	return CXVisit_Continue;
+}
+
 CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data)
 {
 	assert(client_data);
 	const XCursor& cursor(c);
 	Container& parent(*reinterpret_cast<Container*>(client_data));
 
-	XCursor semanticParent = clang_getCursorSemanticParent(cursor);
-	if (semanticParent.usr() != parent.usr()) {
-		log_trace << "P: this{" << cursor << "}; parent{" << semanticParent << "}; container{" << parent << "}";
-	//	TraceX(semanticParent, parent);
-		TraceX(semanticParent.spelling(), parent.name());
-	}
+	XCursor semanticParent = clang_getCursorSemanticParent(cursor); // Field need this to calculate offset
+
+//	// Consider that: a typedef is a parent, but not the semantic parent
+//	if (semanticParent.usr() != parent.usr()) {
+//		log_trace << "P: this{" << cursor << "}; parent{" << semanticParent << "}; container{" << parent << "}";
+//	}
 
 	auto entity = cursor.data();
 	switch (cursor.kind()) {
@@ -351,27 +376,26 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 
 		case CXCursor_TypedefDecl:
 			TraceX("TypedefDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
-			TraceX(cursor.data().typeKindS());
 			if (auto x = new Container(cursor.data(), parent)) {
-				parent.add(x);
 				clang_visitChildren(cursor, typesVisitor, x);
+				parent.add(x);
 			}
 			break;
-
-//			  return CXChildVisit_Recurse;
 
 		case CXCursor_ClassDecl:
 		case CXCursor_StructDecl:
 		case CXCursor_UnionDecl: {
-			TraceX("Class/Struct/UnionDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
-//			if (Struct* x = Struct::registry.getOrAdd(cursor.data(), parent)) {
-			if (auto x = new Struct(cursor.data(), parent)) {
+			TraceX("Class/Struct/UnionDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type(), parent);
+			if (Struct* x = Struct::registry.getOrAdd(cursor.data(), parent)) {
+//			if (auto x = new Struct(cursor.data(), parent)) {
 				clang_visitChildren(cursor, typesVisitor, x);
 				parent.add(x);
 				auto align = clang_Type_getAlignOf(cursor.type());
 				auto size = clang_Type_getSizeOf(cursor.type());
 				TraceX(cursor, size, align);
 				TraceX(*x);
+
+				clang_Type_visitFields(cursor.type(), fieldsVisitor, x);
 			}
 			break;
 		}
@@ -397,9 +421,17 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 
 		case CXCursor_FunctionDecl:
 			if (auto x = new Function(cursor.data(), parent)) {
+				clang_visitChildren(cursor, typesVisitor, x);
 				parent.add(x);
 			}
+//			break;
+//			TraceX("TypedefDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
+//			if (auto x = new Container(cursor.data(), parent)) {
+//				parent.add(x);
+//			}
 			break;
+//          return CXChildVisit_Recurse;
+
 
 		case CXCursor_FunctionTemplate:
 			break;
@@ -442,11 +474,13 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			break;
 
 		default:
+			if (Node* node = new Node(cursor.data(), parent)) {
+				TraceX("default", cursor.data().cursorKindS(),  *node);
+			}
 			return CXChildVisit_Recurse;
 	}
 	return CXChildVisit_Continue;
 }
-
 
 
 void  parseTypes(
@@ -464,7 +498,7 @@ void  parseTypes(
 		Tree tree;
 		clang_visitChildren(cursor, typesVisitor, &tree);
 
-		cout << tree;
+		cout << tree << endl;
 
 		clang_disposeTranslationUnit(unit);
 		clang_disposeIndex(index);
