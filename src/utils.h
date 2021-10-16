@@ -49,7 +49,7 @@ inline auto& operator<<(std::ostream& os, const XString& s) { return os << s.cst
 std::ostream& operator<<(std::ostream& os, const CXType& t);
 
 std::string buildFullName(CXCursor cursor);
-std::string getFile(const CXCursor& cursor);
+std::string getContainingFile(const CXCursor& cursor);
 
 bool isOperatorFunction(CXCursor cursor);
 

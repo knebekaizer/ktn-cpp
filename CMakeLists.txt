@@ -74,4 +74,8 @@ add_executable(
 		h0_test
 		sample/h0.cpp
 )
+add_executable(
+		vector
+		vector.cpp
+)
 target_compile_definitions(h0_test PUBLIC "-DMAIN")

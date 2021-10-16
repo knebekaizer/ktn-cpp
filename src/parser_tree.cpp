@@ -37,13 +37,15 @@ CXTranslationUnit parse(
 	auto diagnostics = clang_getNumDiagnostics(unit);
 	if (diagnostics != 0) {
 		cerr << "> Diagnostics:" << endl;
+		int errCount = 0;
 		for (int i = 0; i != diagnostics; ++i) {
 			auto diag = clang_getDiagnostic(unit, i);
-			log_error << ">>> "
-				<< clang_formatDiagnostic(
-						diag, clang_defaultDiagnosticDisplayOptions());
+			auto severity = clang_getDiagnosticSeverity(diag);
+			if ((int)severity > (int)CXDiagnostic_Warning) errCount++;
+			cerr << clang_formatDiagnostic(
+						diag, clang_defaultDiagnosticDisplayOptions()) << endl;
 		}
-		exit(-1);
+		if (errCount > 0) exit(-1);
 	}
 
 	return unit;
@@ -70,23 +72,26 @@ struct Entity {
 	string typeKindS() const { return str(typeKind); }
 };
 
+struct XType : CXType {
+	XType(const CXType& t) : CXType(t) {}	 // NOLINT(google-explicit-constructor)
+	string name() const { return XString(*this); }
+	string kindS() const { return XString(kind); }
+};
 
 struct XCursor : CXCursor {
 	XCursor(const CXCursor& c) : CXCursor(c) {}	   // NOLINT(google-explicit-constructor)
 
 	string spelling() const { return XString(*this); }
 	auto kind() const { return clang_getCursorKind(*this); }
-	auto type() const { return clang_getCursorType(*this); }
+	XType type() const { return clang_getCursorType(*this); }
 	string typeName() const { return XString(type()); }
 	string usr() const { return XString(clang_getCursorUSR(*this)); }
 
+	// TODO Use caching ?
 	Entity data() const { return Entity(*this); }
-};
 
-struct XType : CXType {
-	XType(const CXType& t) : CXType(t) {}	 // NOLINT(google-explicit-constructor)
-	string name() const { return XString(*this); }
-	string kindS() const { return XString(kind); }
+	string kindS() const { return str(kind()); }
+	string typeKindS() const { return type().kindS(); }
 };
 
 Entity::Entity(const XCursor& c)
@@ -251,7 +256,7 @@ struct Function : Container {
 struct CXXMethod : Function {
 	CXXMethod(const Entity& data, const Container& p) : Function(data, p) {}
 
-	string kindSpelling() const override { return "Function"; };
+//	string kindSpelling() const override { return "Function"; };
 	Render& accept(Render& r) const override { return r.renderCXXMethod(*this); }
 };
 
@@ -307,7 +312,7 @@ private:
 struct Struct : public Container {
 public:
 	Struct(const Entity& data, const Container& p) : Container(data, p) {}
-	string kindSpelling() const override { return "Struct"; };
+//	string kindSpelling() const override { return "Struct"; };
 	string name() const override { return data.typeName; };
 	Render& accept(Render& r) const override { return r.renderStruct(*this); }
 
@@ -342,16 +347,22 @@ CXVisitorResult fieldsVisitor(CXCursor c, CXClientData client_data) {
 //	auto entity = cursor.data();
 	switch (cursor.kind()) {
 		default:
-			TraceX(cursor, clang_isDeclaration(cursor.kind()), clang_Cursor_isAnonymous(cursor), clang_Cursor_isAnonymousRecordDecl(cursor));
-			TraceX(clang_Cursor_isAnonymousRecordDecl(clang_getTypeDeclaration(cursor.type())));
+			TraceX(cursor, cursor.kindS(), clang_Cursor_isAnonymous(cursor), clang_Cursor_isAnonymousRecordDecl(cursor));
+			const XCursor declCursor(clang_getTypeDeclaration(cursor.type()));
+			TraceX(declCursor, declCursor.kindS());
+			TraceX(clang_Cursor_isAnonymousRecordDecl(declCursor));
+			TraceX(clang_Cursor_isAnonymous(declCursor));
 	}
 	return CXVisit_Continue;
 }
 
 CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data)
 {
+	const XCursor& pc(_);
+
 	assert(client_data);
 	const XCursor& cursor(c);
+	TraceX(cursor.spelling(), cursor.type(), pc.spelling(), pc.type());
 	Container& parent(*reinterpret_cast<Container*>(client_data));
 
 	XCursor semanticParent = clang_getCursorSemanticParent(cursor); // Field need this to calculate offset
@@ -404,6 +415,7 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			if (auto x = new Container(cursor.data(), parent)) {
 				clang_visitChildren(cursor, typesVisitor, x);
 				parent.add(x);
+				log_info << "file: " << getContainingFile(cursor);
 			}
 			break;
 

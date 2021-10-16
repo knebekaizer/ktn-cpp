@@ -35,7 +35,7 @@ int parse(
     CXTranslationUnit  unit;
     auto err = clang_parseTranslationUnit2(
             index,
-            file.c_str(), &args[0], args.size(),
+            file.c_str(), args, args.size(),
             nullptr, 0,
             0, //CXTranslationUnit_DetailedPreprocessingRecord, // 0
             &unit

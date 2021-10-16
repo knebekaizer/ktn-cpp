@@ -71,12 +71,28 @@ string buildFullName(CXCursor cursor) {
 	return name;
 }
 
-string getFile(const CXCursor &cursor) {
+string getContainingFile(const CXCursor &cursor) {
 	auto location = clang_getCursorLocation(cursor);
 	CXFile file;
 	clang_getSpellingLocation(location, &file, nullptr, nullptr, nullptr);
 	return XString(clang_getFileName(file));
 }
+
+/*
+internal fun CValue<CXSourceLocation>.getContainingFile(): CXFile? = memScoped {
+    val fileVar = alloc<CXFileVar>()
+    clang_getFileLocation(this@getContainingFile, fileVar.ptr, null, null, null)
+    fileVar.value
+}
+
+@JvmName("getFileContainingCursor")
+internal fun getContainingFile(cursor: CValue<CXCursor>): CXFile? {
+    return clang_getCursorLocation(cursor).getContainingFile()
+}
+
+internal val CXFile.path: String get() = clang_getFileName(this).convertAndDispose()
+internal val CXFile.canonicalPath: String get() = File(this.path).canonicalPath
+*/
 
 bool isRecursivelyPublic(CXCursor cursor) {
 	while (clang_isDeclaration(clang_getCursorKind(cursor)) != 0) {
