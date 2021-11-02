@@ -17,7 +17,7 @@ extern "C" { ... }
 kotlin:
 - Conveniency classes to wrap ugly C binding into class methods
 
-### Marshalling (params and return value)
+### Marshalling (args and return value)
 
 By CXTypeKind: primitive, POD, non-POD (opaque object), pointer (all 3 types)
 

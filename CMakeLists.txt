@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.8.7)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/" )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -MMD" )
@@ -61,6 +61,10 @@ add_executable(
 		src/parseTest.cpp
 		src/utils.cpp
 )
+
+set(USER_HOME $ENV{HOME})
+set(RANGES_INCLUDE "${USER_HOME}/work/lib/range-v3/include")
+target_include_directories(ktn-cpp PUBLIC ${RANGES_INCLUDE})
 
 target_link_libraries(ktn-cpp ${CLANG_LIBS})
 target_link_libraries(parseTest ${CLANG_LIBS})

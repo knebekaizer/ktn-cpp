@@ -5,6 +5,11 @@
 #include <vector>
 #include <unordered_map>
 
+#include "range/v3/all.hpp"
+using ranges::to_vector;
+namespace rng = ranges;
+namespace vs = ranges::views;
+
 #include <clang-c/Index.h>
 
 #include "trace.h"
@@ -19,17 +24,17 @@ namespace {
 CXTranslationUnit parse(
 		CXIndex& index, const string& file, const Args& args)
 {
-	// stupid conversions char* to string and now back to char*
-	const char* tmp[args.size()];
-	transform(args.begin(), args.end(), tmp, [](auto const& s) {return s.c_str();});
+//	// stupid conversions char* to string and now back to char*
+//	const char* tmp[args.size()];
+//	std::transform(args.begin(), args.end(), tmp, [](auto const& s) {return s.c_str();});
+	auto argv = args | vs::transform(&string::c_str) | to_vector;
 
 	CXTranslationUnit unit = clang_parseTranslationUnit(
 			index,
-			file.c_str(), &tmp[0], (int)args.size(),
+			file.c_str(), &argv[0], (int)argv.size(),
 			nullptr, 0,
 			CXTranslationUnit_None);
-	if (unit == nullptr)
-	{
+	if (unit == nullptr) {
 		cerr << "Unable to parse translation unit. Quitting." << endl;
 		exit(-1);
 	}
@@ -123,7 +128,9 @@ class Container;
 struct Tree;
 struct Namespace;
 struct Struct;
+struct ClassTemplate;
 struct Function;
+struct FunctionTemplate;
 struct CXXMethod;
 struct Constructor;
 struct Var;
@@ -138,7 +145,9 @@ public:
 	virtual Render& renderTree(const Tree& x);
 	virtual Render& renderNamespace(const Namespace& x);
 	virtual Render& renderStruct(const Struct& x);
+	virtual Render& renderClassTemplate(const ClassTemplate& x);
 	virtual Render& renderFunc(const Function& x);
+	virtual Render& renderFunctionTemplate(const FunctionTemplate& x);
 	virtual Render& renderCXXMethod(const CXXMethod& x);
 	virtual Render& renderConstructor(const Constructor& x);
 	virtual Render& renderVar(const Var& x);
@@ -223,6 +232,9 @@ struct Log : Render {
 Log& Log::renderNode(const Node& node) {
 	string prefix = string(indent * 4, ' ');
 	lines.push_back( prefix + "." + node.name() + " : " + node.kindSpelling() );
+//	lines.push_back( prefix + "." + node.name() + " : " + node.data.typeName << " of " << node.data. kindSpelling() )
+//	return os << c.name << " : " << c.typeName << " of " << c.typeKindS();
+
 	return *this;
 }
 
@@ -254,11 +266,35 @@ struct Function : Container {
 };
 
 struct CXXMethod : Function {
-	CXXMethod(const Entity& data, const Container& p) : Function(data, p) {}
-
-//	string kindSpelling() const override { return "Function"; };
+	CXXMethod(const XCursor& cursor, const Container& p);
+	string kindSpelling() const override { return "CXXMethod"; };
 	Render& accept(Render& r) const override { return r.renderCXXMethod(*this); }
+	vector<unique_ptr<Node>> args;
+	string resultType;
+	bool isConst;
 };
+
+CXXMethod::CXXMethod(const XCursor& cursor, const Container& p)
+	: Function(cursor.data(), p)
+{
+	for (auto k=0; k!=clang_Cursor_getNumArguments(cursor); ++k) {
+		XCursor paramCursor = clang_Cursor_getArgument(cursor, k);
+		args.push_back(make_unique<Node>(paramCursor.data(), *this));
+		XType const& argType = clang_getArgType(cursor.type(), k);
+		TraceX(*args.back(), argType);
+	}
+	XType const& ret = clang_getCursorResultType(cursor);
+	resultType = ret.name();
+	isConst = clang_CXXMethod_isConst(cursor);
+	TraceX(resultType, isConst);
+}
+/*
+CINDEX_LINKAGE int 	clang_Cursor_getNumArguments (CXCursor C)
+ 	Retrieve the number of non-variadic arguments associated with a given cursor. More...
+
+CINDEX_LINKAGE CXCursor 	clang_Cursor_getArgument (CXCursor C, unsigned i)
+ 	Retrieve the argument cursor of a function or method. More...
+*/
 
 struct Constructor : Function {
 	Constructor(const Entity& data, const Container& p) : Function(data, p) {}
@@ -284,6 +320,29 @@ struct Enum : Node {
 	Render& accept(Render& r) const override { return r.renderEnum(*this); }
 };
 
+struct FunctionTemplate : Container {
+	FunctionTemplate(const Entity& data, const Container& p) : Container(data, p) {}
+
+	string kindSpelling() const override { return "FunctionTemplate"; };
+	Render& accept(Render& r) const override { return r.renderFunctionTemplate(*this); }
+};
+
+/*
+CINDEX_LINKAGE int 	clang_Cursor_getNumTemplateArguments (CXCursor C)
+ 	Returns the number of template args of a function decl representing a template specialization. More...
+
+CINDEX_LINKAGE enum CXTemplateArgumentKind 	clang_Cursor_getTemplateArgumentKind (CXCursor C, unsigned I)
+ 	Retrieve the kind of the I'th template argument of the CXCursor C. More...
+
+CINDEX_LINKAGE CXType 	clang_Cursor_getTemplateArgumentType (CXCursor C, unsigned I)
+ 	Retrieve a CXType representing the type of a TemplateArgument of a function decl representing a template specialization. More...
+
+CINDEX_LINKAGE long long 	clang_Cursor_getTemplateArgumentValue (CXCursor C, unsigned I)
+ 	Retrieve the value of an Integral TemplateArgument (of a function decl representing a template specialization) as a signed long long. More...
+
+CINDEX_LINKAGE unsigned long long 	clang_Cursor_getTemplateArgumentUnsignedValue (CXCursor C, unsigned I)
+ 	Retrieve the value of an Integral TemplateArgument (of a function decl representing a template specialization) as an unsigned long long. More...
+*/
 struct Namespace : public Container {
 public:
 	Namespace(const Entity& data, const Container& p) : Container(data, p) {
@@ -319,6 +378,16 @@ public:
 	static Registry registry;
 };
 
+struct ClassTemplate : public Container {
+public:
+	ClassTemplate(const Entity& data, const Container& p) : Container(data, p) {}
+	string kindSpelling() const override { return data.cursorKindS(); };
+//	string name() const override { return data.typeName; };
+	Render& accept(Render& r) const override { return r.renderClassTemplate(*this); }
+
+	static Registry registry;
+};
+
 Registry::StructPtr::StructPtr(const Entity& data, const Container& p) : ptr(new Struct(data, p)) {}
 Registry Struct::registry;
 
@@ -332,7 +401,9 @@ public:
 Render& Render::renderTree(const Tree& x) { return renderContainer(x); }
 Render& Render::renderNamespace(const Namespace& x) { return renderContainer(x); }
 Render& Render::renderStruct(const Struct& x) { return renderContainer(x); }
+Render& Render::renderClassTemplate(const ClassTemplate& x) { return renderContainer(x); }
 Render& Render::renderFunc(const Function& x) { return renderContainer(x); }// { return renderNode(x); }
+Render& Render::renderFunctionTemplate(const FunctionTemplate& x) { return renderContainer(x); }// { return renderNode(x); }
 Render& Render::renderCXXMethod(const CXXMethod& x) { return renderNode(x); }
 Render& Render::renderConstructor(const Constructor& x) { return renderNode(x); }
 Render& Render::renderVar(const Var& x) { return renderNode(x); }
@@ -356,14 +427,44 @@ CXVisitorResult fieldsVisitor(CXCursor c, CXClientData client_data) {
 	return CXVisit_Continue;
 }
 
-CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data)
-{
-	const XCursor& pc(_);
 
-	assert(client_data);
+class Visitor {
+	struct Data {Visitor* v; Container* p;};
+	static CXChildVisitResult go(CXCursor c, CXCursor p, CXClientData client_data) {
+		auto [self, parent] = *reinterpret_cast<Data*>(client_data);
+		return self->typesVisitor_(c, *parent);
+	}
+	CXChildVisitResult typesVisitor_(CXCursor c, Container& parent);
+	string headerPath;
+	bool verbose = false;
+public:
+	Visitor(string arg) : headerPath(arg) {}
+	auto visitChildren(CXCursor c, CXClientData parent) {
+		Data data = {this, (Container*)parent};
+		return ::clang_visitChildren(c, Visitor::go, &data);
+	}
+};
+
+struct IncrIndent {
+	IncrIndent() { indent++; }
+	~IncrIndent() { --indent; }
+	auto get() const { return string_view(buf, indent); }
+//	operator const string_view() const { return get(); }
+private:
+	static char constexpr buf[] = ".........................................";
+	static size_t indent;
+};
+size_t IncrIndent::indent = 0;
+
+CXChildVisitResult Visitor::typesVisitor_(CXCursor c, Container& parent)
+{
+	if (headerPath != getContainingFile(c)) return CXChildVisit_Continue;
+//	assert(client_data);
 	const XCursor& cursor(c);
-	TraceX(cursor.spelling(), cursor.type(), pc.spelling(), pc.type());
-	Container& parent(*reinterpret_cast<Container*>(client_data));
+	IncrIndent _indent;
+	cerr << _indent.get() << " " << cursor.spelling() << " : " << cursor.kindS() << endl;
+	if (verbose) TraceX(cursor);
+//	Container& parent(*reinterpret_cast<Container*>(client_data));
 
 	XCursor semanticParent = clang_getCursorSemanticParent(cursor); // Field need this to calculate offset
 
@@ -378,9 +479,9 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			TraceX("Namespace", clang_Cursor_isAnonymous(cursor));
 			if (cursor.spelling().empty()) break; // skip anonymous namespace
 			if (Node* x = parent.get(entity.usr)) {	 // namespace object already exists - reuse it
-				clang_visitChildren(cursor, typesVisitor, x);
+				visitChildren(cursor, x);
 			} else if ((x = new Namespace(cursor.data(), parent))) {  // create a new one
-				clang_visitChildren(cursor, typesVisitor, x);
+				visitChildren(cursor, x);
 				parent.add(x);
 			}
 			break;
@@ -388,7 +489,7 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 		case CXCursor_TypedefDecl:
 			TraceX("TypedefDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
 			if (auto x = new Container(cursor.data(), parent)) {
-				clang_visitChildren(cursor, typesVisitor, x);
+				visitChildren(cursor, x);
 				parent.add(x);
 			}
 			break;
@@ -399,23 +500,26 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			TraceX("Class/Struct/UnionDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type(), parent);
 			if (Struct* x = Struct::registry.getOrAdd(cursor.data(), parent)) {
 //			if (auto x = new Struct(cursor.data(), parent)) {
-				clang_visitChildren(cursor, typesVisitor, x);
+				visitChildren(cursor, x);
 				parent.add(x);
-				auto align = clang_Type_getAlignOf(cursor.type());
-				auto size = clang_Type_getSizeOf(cursor.type());
-				TraceX(cursor, size, align);
-				TraceX(*x);
+//				auto align = clang_Type_getAlignOf(cursor.type());
+//				auto size = clang_Type_getSizeOf(cursor.type());
+//				TraceX(cursor, size, align);
+//				TraceX(*x);
 
-				clang_Type_visitFields(cursor.type(), fieldsVisitor, x);
+//				clang_Type_visitFields(cursor.type(), fieldsVisitor, x);
 			}
 			break;
 		}
 
 		case CXCursor_ClassTemplate:
-			if (auto x = new Container(cursor.data(), parent)) {
-				clang_visitChildren(cursor, typesVisitor, x);
+//			TraceX("Class/Struct/CXCursor_ClassTemplate", cursor.spelling(), cursor.type(), parent);
+			TraceX(cursor);
+			log_info << "ClassTemplate: " << cursor.spelling() << " : " << cursor.kindS();
+			if (auto x = new ClassTemplate(cursor.data(), parent)) {
+				visitChildren(cursor, x);
 				parent.add(x);
-				log_info << "file: " << getContainingFile(cursor);
+//				log_info << "file: " << getContainingFile(cursor);
 			}
 			break;
 
@@ -426,14 +530,15 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 			break;
 
 		case CXCursor_CXXMethod:
-			if (auto x = new Function(cursor.data(), parent)) {
+			if (auto x = new CXXMethod(cursor, parent)) {
+				visitChildren(cursor, x);
 				parent.add(x);
 			}
 			break;
 
 		case CXCursor_FunctionDecl:
 			if (auto x = new Function(cursor.data(), parent)) {
-				clang_visitChildren(cursor, typesVisitor, x);
+				visitChildren(cursor, x);
 				parent.add(x);
 			}
 //			break;
@@ -446,6 +551,15 @@ CXChildVisitResult typesVisitor(CXCursor c, CXCursor _, CXClientData client_data
 
 
 		case CXCursor_FunctionTemplate:
+			log_trace << "<< CXCursor_FunctionTemplate: " << cursor;
+			if (auto x = new FunctionTemplate(cursor.data(), parent)) {
+				auto tmp = verbose;
+				verbose = true;
+				visitChildren(cursor, x);
+				verbose = tmp;
+				parent.add(x);
+			}
+			log_trace << ">>: ";
 			break;
 
 		case CXCursor_VarDecl:
@@ -508,7 +622,8 @@ void  parseTypes(
 		auto cursor = clang_getTranslationUnitCursor(unit);
 
 		Tree tree;
-		clang_visitChildren(cursor, typesVisitor, &tree);
+		Visitor v(file);
+		v.visitChildren(cursor, &tree);
 
 		cout << tree << endl;
 
