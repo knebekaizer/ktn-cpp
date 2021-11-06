@@ -54,7 +54,7 @@ add_executable(
 	src/main.cpp
 	src/parser_tree.cpp
 	src/utils.cpp
-)
+        src/ast_views.cpp src/ast_views.hpp)
 
 add_executable(
 		parseTest

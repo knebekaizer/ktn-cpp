@@ -44,6 +44,8 @@ private:
 	mutable const char* cstr_ = nullptr;
 };
 
+inline std::string str(CXCursorKind k) { return XString(k); }
+inline std::string str(CXTypeKind k) { return XString(k); }
 
 inline auto& operator<<(std::ostream& os, const XString& s) { return os << s.cstr(); }
 std::ostream& operator<<(std::ostream& os, const CXType& t);
