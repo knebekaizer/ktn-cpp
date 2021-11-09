@@ -15,7 +15,7 @@ project (ktn-cpp)
 include_directories(${CMAKE_SOURCE_DIR})
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libc++ -MMD")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -stdlib=libc++ -MMD")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

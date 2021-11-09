@@ -76,7 +76,7 @@ Entity serialize(const XCursor& c) {
 
 
 ostream& operator<<(ostream& os, Entity const& c) {
-	return os << c.name << " : " << c.typeName << " of " << c.typeKindS();
+	return os << "["<<c.cursorKindS()<<"] " << c.name << " : " << c.typeName << " of " << c.typeKindS();
 }
 
 ostream& operator<<(ostream& os, XCursor const& c) {
@@ -136,7 +136,7 @@ public:
 
 	string usr() const { return data.usr; }
 	virtual string name() const { return data.name; };
-	virtual string signature() const { return data.name; };
+	virtual string signature() const { return data.typeName + " " + name(); };
 
 //	virtual string kindSpelling() const = 0;
 	virtual string kindSpelling() const { return data.typeKindS(); };
@@ -162,6 +162,7 @@ protected:
 
 public:
 	Container(const Entity& data, const Container* p) : Node(data, p) {}
+	Container(const XCursor& cursor);
 
 	// FIXME: memory leak. I want unique_ptr for all Node types but shared_ptr for cached ones (see Struct::registy)
 //	using Nodes = vector<unique_ptr<Node>>;
@@ -181,6 +182,11 @@ public:
 
 	string kindSpelling() const override { return data.typeKindS(); };
 };
+
+Container::Container(const XCursor& cursor)
+	: Container(cursor.data(), nullptr)
+{
+}
 
 
 struct Log : Render {
@@ -245,10 +251,9 @@ struct Function : Container {
 
 string Function::signature() const {
 	ostringstream buf;
-//	buf << retType << ' ';
+	buf << retType << ' ';
 	buf << name() << '(';
-	int ix = 0;
-	for (auto& arg : args) {
+	for (int ix = 0; auto& arg : args) {
 		if (ix++) buf << ", ";
 		buf << arg.type << ' ' << arg.name;
 	}
@@ -257,25 +262,93 @@ string Function::signature() const {
 }
 
 namespace {
-//! TODO Use range generator
-auto genArgs(const XCursor& funC) {
-	Function::Args args;
-	using namespace xclang::views;
-	CXCursorKind functionKinds[] = {CXCursor_FunctionDecl, CXCursor_CXXMethod, CXCursor_FunctionTemplate};
-	auto kind = funC.kind();
-	assert(rng::contains(functionKinds, kind));
-	if (kind == CXCursor_FunctionTemplate) return args; // TODO support me
-	for (auto&& c : argumenttCursors(funC)) {
-		args.emplace_back(c.type(), c.spelling());
-	}
-	return args;
-}
-
 
 auto genResultType = [](const XCursor& cursor) {
 	return ((XType const&)clang_getCursorResultType(cursor)).name();
 };
+
+template <class F>
+class visitor_fn {
+	F fun;
+	static CXChildVisitResult go(CXCursor c, CXCursor p, CXClientData client_data) {
+		const auto& self = *reinterpret_cast<visitor_fn*>(client_data);
+		return self.fun(static_cast<const XCursor&>(c));
+	}
+public:
+	visitor_fn(CXCursor c, F fn) : fun(fn) {
+		::clang_visitChildren(c, visitor_fn::go, this);
+	}
+};
+auto dummy = [](auto c){return true;};
+template <typename Pred = bool(XCursor c)>
+auto children(CXCursor parent, Pred pred = dummy) {
+	vector<XCursor> ret;
+	auto f = [&ret, pred](auto& c) {
+		if (pred(c))
+			ret.push_back(c);
+		return CXChildVisit_Continue;
+	};
+	visitor_fn<decltype(f)> run(parent, f);
+	return ret;
 }
+
+//! TODO Use range generator
+auto genArgs(const XCursor& funC) {
+	Function::Args args;
+	using namespace xclang::views;
+	CXCursorKind functionKinds[] = {CXCursor_Constructor, CXCursor_FunctionDecl, CXCursor_CXXMethod, CXCursor_FunctionTemplate};
+	auto kind = funC.kind();
+	assert(rng::contains(functionKinds, kind));
+	if (kind == CXCursor_FunctionTemplate) {
+//		return (vector<XCursor> const&) ::children(funC) // need either local copy or const ref to hold the temporary
+//			| vs::filter([](auto kind){ return kind == CXCursor_ParmDecl;}, &XCursor::kind)
+//			| vs::transform([](const XCursor& c){ return Function::Arg(c.type(), c.name()); })
+//			| rng::to_vector;
+
+//		auto ch = ::children(funC);
+//		for (auto&& c : ch | vs::filter([](auto kind){ return kind == CXCursor_ParmDecl;}, &XCursor::kind)) {
+		for (auto&& c : ::children(funC, [](auto c){return c.kind() == CXCursor_ParmDecl;})) {
+			args.emplace_back(c.type(), c.spelling());
+		}
+	} else {
+		for (auto&& c : argumenttCursors(funC)) {
+			args.emplace_back(c.type(), c.spelling());
+		}
+	}
+	return args;
+}
+
+[[maybe_unused]]
+static char const* CXTemplateArgumentKind_Printable[] = {
+  "CXTemplateArgumentKind_Null",
+  "CXTemplateArgumentKind_Type",
+  "CXTemplateArgumentKind_Declaration",
+  "CXTemplateArgumentKind_NullPtr",
+  "CXTemplateArgumentKind_Integral",
+  "CXTemplateArgumentKind_Template",
+  "CXTemplateArgumentKind_TemplateExpansion",
+  "CXTemplateArgumentKind_Expression",
+  "CXTemplateArgumentKind_Pack",
+  /* Indicates an error case, preventing the kind from being deduced. */
+  "CXTemplateArgumentKind_Invalid"
+};
+
+//! template args of a function decl representing a template specialization
+[[maybe_unused]]
+auto getTmplArgs(const XCursor& cursor) {
+	auto n = clang_Cursor_getNumTemplateArguments(cursor);
+	if (n >= 0)
+		for (auto k = 0; k != n; ++k) {
+			XType const& tmplArgType = clang_Cursor_getTemplateArgumentType(cursor, k);
+			CXTemplateArgumentKind tmplArgKind = clang_Cursor_getTemplateArgumentKind(cursor, k);
+			assert((unsigned int) tmplArgKind < sizeof(CXTemplateArgumentKind_Printable) / sizeof(*CXTemplateArgumentKind_Printable));
+			auto kind = CXTemplateArgumentKind_Printable[(int) tmplArgKind];
+			TraceX(kind, tmplArgType.name());
+		}
+}
+
+}
+
 
 Function::Function(const XCursor& cursor, const Container* p)
 	: Container(cursor.data(), p)
@@ -283,6 +356,7 @@ Function::Function(const XCursor& cursor, const Container* p)
 	, args(genArgs(cursor))
 {
 }
+
 struct CXXMethod : Function {
 	explicit CXXMethod(const XCursor& cursor, const Container* p = nullptr);
 	string kindSpelling() const override { return "CXXMethod"; };
@@ -299,14 +373,6 @@ CXXMethod::CXXMethod(const XCursor& cursor, const Container* p)
 	TraceX(signature());
 }
 
-/*
-CINDEX_LINKAGE int 	clang_Cursor_getNumArguments (CXCursor C)
- 	Retrieve the number of non-variadic arguments associated with a given cursor. More...
-
-CINDEX_LINKAGE CXCursor 	clang_Cursor_getArgument (CXCursor C, unsigned i)
- 	Retrieve the argument cursor of a function or method. More...
-*/
-
 struct Constructor : Function {
 	explicit Constructor(const XCursor& cursor, const Container* p = nullptr) : Function(cursor, p) {}
 	string kindSpelling() const override { return "Constructor"; };
@@ -315,13 +381,15 @@ struct Constructor : Function {
 
 struct Var : Node {
 	explicit Var(const Entity& data, const Container* p = nullptr) : Node(data, p) {}
-	string kindSpelling() const override { return "Variable"; };
+	string kindSpelling() const override { return "Variable"; }
+	string signature() const override { return data.typeName + " " + name();  }
 	Render& accept(Render& r) const override { return r.renderVar(*this); }
 };
 
 struct Field : Node {
 	explicit Field(const Entity& data, const Container* p = nullptr) : Node(data, p) {}
 	string kindSpelling() const override { return "Field"; };
+	string signature() const override { return data.typeName + " " + name();  }
 	Render& accept(Render& r) const override { return r.renderField(*this); }
 };
 
@@ -331,52 +399,68 @@ struct Enum : Node {
 	Render& accept(Render& r) const override { return r.renderEnum(*this); }
 };
 
+struct TmplArg : Node {
+	explicit TmplArg(const Entity& n) : Node(n, nullptr) {}
+//		string signature() const override { return data.name; };
+};
+
 struct FunctionTemplate : Function {
 	explicit FunctionTemplate(const XCursor& cursor, const Container* p = nullptr);
 	string kindSpelling() const override { return "FunctionTemplate"; };
 	Render& accept(Render& r) const override { return r.renderFunctionTemplate(*this); }
 
-	struct TmplArg {
-		using Type = std::string;
-		Type type;
-		string name;
-		TmplArg(const XType& type_, string name_) : type(type_.name()), name(std::move(name_)) {}
-	};
 	using TmplArgs = vector<TmplArg>;
 	TmplArgs tmplArgs;
 	string signature() const override;
 };
 
-static char const* CXTemplateArgumentKind_Printable[] = {
-  "CXTemplateArgumentKind_Null",
-  "CXTemplateArgumentKind_Type",
-  "CXTemplateArgumentKind_Declaration",
-  "CXTemplateArgumentKind_NullPtr",
-  "CXTemplateArgumentKind_Integral",
-  "CXTemplateArgumentKind_Template",
-  "CXTemplateArgumentKind_TemplateExpansion",
-  "CXTemplateArgumentKind_Expression",
-  "CXTemplateArgumentKind_Pack",
-  /* Indicates an error case, preventing the kind from being deduced. */
-  "CXTemplateArgumentKind_Invalid"
-};
+namespace {
+
+auto templateArgs(const XCursor& cursor) {
+	vector<TmplArg> args;
+	for (auto& x : ::children(cursor)) {
+		switch (x.kind()){
+			case CXCursor_TemplateTypeParameter:
+			case CXCursor_TemplateTemplateParameter:
+			case CXCursor_NonTypeTemplateParameter:
+				args.emplace_back(x.data());
+				break;
+			default:
+				break;
+		}
+	}
+	return args;
+}
+}
 FunctionTemplate::FunctionTemplate(const XCursor& cursor, const Container* p)
 	: Function(cursor, p)
+	, tmplArgs(templateArgs(cursor))
 {
-	auto n = clang_Cursor_getNumTemplateArguments(cursor);
-//	assert(n >= 0);
-	if (n >= 0)
-	for (auto k=0; k!=n; ++k) {
-		XType const& tmplArgType = clang_Cursor_getTemplateArgumentType(cursor, k);
-		CXTemplateArgumentKind tmplArgKind = clang_Cursor_getTemplateArgumentKind(cursor, k);
-		assert((unsigned int)tmplArgKind < sizeof(CXTemplateArgumentKind_Printable)/sizeof(*CXTemplateArgumentKind_Printable));
-		auto kind = CXTemplateArgumentKind_Printable[(int)tmplArgKind];
-		TraceX(kind, tmplArgType.name());
-	}
-	TraceX(signature());
+//	TraceX(signature());
 }
 string FunctionTemplate::signature() const {
-	return Function::signature();
+//	return Function::signature();
+	ostringstream buf;
+	buf << retType << ' ';
+	buf << name();
+	buf << "<";
+	for (int ix = 0; auto& arg : tmplArgs) {
+		if (ix++) buf << ", ";
+		if (arg.data.cursorKind == CXCursor_TemplateTypeParameter)
+			buf << "class " << arg.name();
+		else if (arg.data.cursorKind == CXCursor_NonTypeTemplateParameter)
+			buf << arg.data.typeName << " " << arg.name();
+		else if (arg.data.cursorKind == CXCursor_TemplateTemplateParameter)
+			buf << "template <> class " << arg.name();
+	}
+	buf << ">";
+	buf << '(';
+	for (int ix = 0; auto& arg : args) {
+		if (ix++) buf << ", ";
+		buf << arg.type << ' ' << arg.name;
+	}
+	buf << ')';
+	return buf.str();
 }
 /*
 CINDEX_LINKAGE int 	clang_Cursor_getNumTemplateArguments (CXCursor C)
@@ -431,13 +515,43 @@ public:
 
 struct ClassTemplate : public Container {
 public:
-	explicit ClassTemplate(const Entity& data, const Container* p = nullptr) : Container(data, p) {}
+	explicit ClassTemplate(const XCursor& cursor, const Container* p = nullptr);
 	string kindSpelling() const override { return data.cursorKindS(); };
 //	string name() const override { return data.typeName; };
 	Render& accept(Render& r) const override { return r.renderClassTemplate(*this); }
 
+	using TmplArgs = vector<TmplArg>;
+	TmplArgs tmplArgs;
+	XCursor cursor;
+	string signature() const override;
+
 	static Registry registry;
 };
+
+ClassTemplate::ClassTemplate(const XCursor& c, const Container* p)
+	: Container(c.data(), p)
+	, tmplArgs(templateArgs(c))
+	, cursor(c)
+{
+}
+
+string ClassTemplate::signature() const {
+	ostringstream buf;
+	buf << "template<";
+	for (int ix = 0; auto& arg : tmplArgs) {
+		if (ix++) buf << ", ";
+		if (arg.data.cursorKind == CXCursor_TemplateTypeParameter)
+			buf << "class " << arg.name();
+		else if (arg.data.cursorKind == CXCursor_NonTypeTemplateParameter)
+			buf << arg.data.typeName << " " << arg.name();
+		else if (arg.data.cursorKind == CXCursor_TemplateTemplateParameter)
+			buf << "template <> class " << arg.name();
+	}
+	buf << "> class ";
+	buf << name();
+	return buf.str();
+}
+
 
 Registry::StructPtr::StructPtr(const Entity& data, const Container* p) : ptr(new Struct(data, p)) {}
 Registry Struct::registry;
@@ -515,8 +629,8 @@ CXChildVisitResult Visitor::typesVisitor_(CXCursor c, Container& parent)
 	if (headerPath != getContainingFile(c)) return CXChildVisit_Continue;
 //	assert(client_data);
 	const XCursor& cursor(c);
-	IncrIndent _indent;
-	cerr << _indent.get() << " " << cursor.spelling() << " : " << cursor.kindS() << endl;
+	IncrIndent _indent [[maybe_unused]];
+//	cerr << _indent.get() << " " << cursor.spelling() << " : " << cursor.kindS() << endl;
 	if (verbose) TraceX(cursor);
 //	Container& parent(*reinterpret_cast<Container*>(client_data));
 
@@ -566,9 +680,7 @@ CXChildVisitResult Visitor::typesVisitor_(CXCursor c, Container& parent)
 		}
 
 		case CXCursor_ClassTemplate:
-//			TraceX("Class/Struct/CXCursor_ClassTemplate", cursor.spelling(), cursor.type(), parent);
-			TraceX(cursor);
-			if (auto x = new ClassTemplate(cursor.data(), &parent)) {
+			if (auto x = new ClassTemplate(cursor, &parent)) {
 				visitChildren(cursor, x);
 				parent.add(x);
 			}
@@ -582,7 +694,7 @@ CXChildVisitResult Visitor::typesVisitor_(CXCursor c, Container& parent)
 
 		case CXCursor_CXXMethod:
 			if (auto x = new CXXMethod(cursor, &parent)) {
-				visitChildren(cursor, x);
+//				visitChildren(cursor, x);
 				if (!x->name().starts_with("__"sv))
 				parent.add(x);
 			}
@@ -590,26 +702,15 @@ CXChildVisitResult Visitor::typesVisitor_(CXCursor c, Container& parent)
 
 		case CXCursor_FunctionDecl:
 			if (auto x = new Function(cursor, &parent)) {
-				visitChildren(cursor, x);
+//				visitChildren(cursor, x);
 				if (!x->name().starts_with("__"sv))
 				parent.add(x);
 			}
-//			break;
-//			TraceX("TypedefDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
-//			if (auto x = new Container(cursor.data(), parent)) {
-//				parent.add(x);
-//			}
 			break;
-//          return CXChildVisit_Recurse;
-
 
 		case CXCursor_FunctionTemplate:
 			log_trace << "<< CXCursor_FunctionTemplate: " << cursor;
 			if (auto x = new FunctionTemplate(cursor, &parent)) {
-				auto tmp = verbose;
-				verbose = true;
-				visitChildren(cursor, x);
-				verbose = tmp;
 				if (!x->name().starts_with("__"sv))
 					parent.add(x);
 			}
@@ -635,13 +736,7 @@ CXChildVisitResult Visitor::typesVisitor_(CXCursor c, Container& parent)
 			break;
 
 		case CXCursor_FieldDecl:
-//			TraceX("FieldDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type());
 			if (auto x = new Field(cursor.data(), &parent)) {
-//				auto offset = clang_Type_getOffsetOf(semanticParent.type(), x->name().c_str());
-//				auto off2 = clang_Cursor_getOffsetOfField(cursor);
-//				auto offsetBytes = offset / 8;
-//				auto align = clang_Type_getAlignOf(cursor.type());
-//				TraceX(x->name(), offsetBytes, off2 / 8, align);
 				parent.add(x);
 			}
 			break;
@@ -654,7 +749,8 @@ CXChildVisitResult Visitor::typesVisitor_(CXCursor c, Container& parent)
 
 		default:
 			if (Node* node = new Node(cursor.data(), &parent)) {
-				TraceX("default", cursor.data().cursorKindS(),  *node);
+				log_trace << "default> " << cursor;
+//				TraceX("default", cursor.data().cursorKindS(),  *node);
 			}
 			return CXChildVisit_Recurse;
 	}

@@ -31,6 +31,7 @@ struct XCursor : CXCursor {
 	XCursor(const CXCursor& c) : CXCursor(c) {}	   // NOLINT(google-explicit-constructor)
 
 	std::string spelling() const { return XString(*this); }
+	std::string name() const { return XString(*this); }
 	auto kind() const { return clang_getCursorKind(*this); }
 	XType type() const { return clang_getCursorType(*this); }
 	std::string typeName() const { return XString(type()); }
