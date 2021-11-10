@@ -111,7 +111,7 @@ public:
 	virtual Render& renderNamespace(const Namespace& x);
 	virtual Render& renderStruct(const Struct& x);
 	virtual Render& renderClassTemplate(const ClassTemplate& x);
-	virtual Render& renderFunc(const Function& x);
+	virtual Render& renderFunction(const Function& x);
 	virtual Render& renderFunctionTemplate(const FunctionTemplate& x);
 	virtual Render& renderCXXMethod(const CXXMethod& x);
 	virtual Render& renderConstructor(const Constructor& x);
@@ -223,6 +223,53 @@ Log& Log::renderContainer(const Container& container) {
 	return *this;
 }
 
+struct Json : Render {
+	Json& renderNode(const Node& node) override;
+	Json& renderContainer(const Container& container) override;
+	Json& renderTree(const Tree& x) override;
+	Json& renderFunction(const Function& x) override;
+private:
+	struct Indenter{
+		explicit Indenter(int& i) : indent(++i) {}
+		~Indenter() { --indent; }
+		int& indent;
+	};
+	int indent = 0;
+	void renderNodeOpen(const Node& node);
+	void close();
+};
+
+void Json::renderNodeOpen(const Node& node) {
+	string prefix = string(indent * 4, ' ');
+//	lines.push_back( prefix + "." + node.name() + " : " + node.kindSpelling() );
+	ostringstream buf_;
+#define buf buf_ << prefix
+	buf << "{\n";
+	prefix += "  ";
+	if (auto kind = node.data.cursorKindS(); !kind.empty()) buf << quoted("kind"s) << ": " << quoted(kind) << ",\n";
+//	buf << quoted("kind"s) << ": " << node.data.cursorKind << ",\n";
+	buf << quoted("name"s) << ": " << quoted(node.data.name) << ",\n";
+	if (auto type = node.data.typeName; !type.empty()) buf << quoted("type"s) << ": " << quoted(type) << ",\n";
+	buf << quoted("usr"s) << ": " << quoted(node.data.usr) << ",\n";
+	buf << quoted("signature"s) << ": " << quoted(node.signature());
+//	std::string			usr;
+//	CXCursorKind	cursorKind = (CXCursorKind)0;
+//	CXTypeKind		typeKind = CXType_Invalid;
+//	std::string			typeName;
+
+//	buf << "}"; // keep open
+
+	lines.emplace_back( buf_.str() );
+//	lines.push_back( prefix + "." + node.name() + " : " + node.data.typeName << " of " << node.data. kindSpelling() )
+//	return os << c.name << " : " << c.typeName << " of " << c.typeKindS();
+#undef buf
+}
+
+void Json::close() {
+	string prefix = string(indent * 4, ' ');
+	lines.push_back( prefix + "}," );
+}
+
 ostream& operator<<(ostream& os, Node const& x) {
 	Log log;
 	x.accept(log);
@@ -244,7 +291,7 @@ struct Function : Container {
 	virtual string signature() const override;
 
 	string kindSpelling() const override { return "Function"; };
-	Render& accept(Render& r) const override { return r.renderFunc(*this); }
+	Render& accept(Render& r) const override { return r.renderFunction(*this); }
 	Arg::Type retType;
 	Args args;
 };
@@ -567,13 +614,63 @@ Render& Render::renderTree(const Tree& x) { return renderContainer(x); }
 Render& Render::renderNamespace(const Namespace& x) { return renderContainer(x); }
 Render& Render::renderStruct(const Struct& x) { return renderContainer(x); }
 Render& Render::renderClassTemplate(const ClassTemplate& x) { return renderContainer(x); }
-Render& Render::renderFunc(const Function& x) { return renderContainer(x); }// { return renderNode(x); }
+Render& Render::renderFunction(const Function& x) { return renderContainer(x); }// { return renderNode(x); }
 Render& Render::renderFunctionTemplate(const FunctionTemplate& x) { return renderContainer(x); }// { return renderNode(x); }
-Render& Render::renderCXXMethod(const CXXMethod& x) { return renderNode(x); }
+Render& Render::renderCXXMethod(const CXXMethod& x) { return renderFunction(x); }
 Render& Render::renderConstructor(const Constructor& x) { return renderNode(x); }
 Render& Render::renderVar(const Var& x) { return renderNode(x); }
 Render& Render::renderField(const Field& x) { return renderNode(x); }
 Render& Render::renderEnum(const Enum& x) { return renderNode(x); }
+
+Json& Json::renderTree(const Tree& tree) {
+	lines.emplace_back("{");
+	for (auto& c : tree.children) {
+		Indenter i(indent);
+		c->accept(*this);
+	}
+	close();
+	return *this;
+}
+
+Json& Json::renderNode(const Node& node) {
+	renderNodeOpen(node);
+	close();
+	return *this;
+}
+
+Json& Json::renderContainer(const Container& container) {
+	renderNodeOpen(container); // prolog
+	for (auto& c : container.children) {
+		Indenter i(indent);
+		c->accept(*this);
+	}
+	close();
+	return *this;
+}
+
+Json& Json::renderFunction(const Function& x) {
+	renderNodeOpen(x);
+	string prefix = string(indent * 4, ' ') + "  ";
+//	lines.push_back( prefix + "." + node.name() + " : " + node.kindSpelling() );
+	ostringstream buf_;
+#define buf buf_ << prefix
+	buf <<  quoted("args") << ": [\n";
+	{
+		Indenter i(indent);
+		prefix = string(indent * 4, ' ');
+		for (int i = 0; auto& arg : x.args) {
+			buf << quoted(arg.type);
+			if (++i < x.args.size()) { buf << ","; }
+			buf << "\n";
+		}
+	}
+	prefix = string(indent * 4, ' ') + "  ";
+	buf << "]";
+	lines.emplace_back( buf_.str() );
+	close();
+	return *this;
+#undef buf
+}
 
 
 CXVisitorResult fieldsVisitor(CXCursor c, CXClientData client_data) {
@@ -775,6 +872,11 @@ void  parseTypes(
 		v.visitChildren(cursor, &tree);
 
 		cout << tree << endl;
+
+		Json json;
+		tree.accept(json);
+	//	return os << log << endl;
+		cerr << json << endl;
 
 		clang_disposeTranslationUnit(unit);
 		clang_disposeIndex(index);
