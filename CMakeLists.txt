@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 2.8.7)
 set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/" )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -MMD" )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -MMD -Wno-unused-command-line-argument" )
 
 SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 
@@ -54,7 +54,8 @@ add_executable(
 	src/main.cpp
 	src/parser_tree.cpp
 	src/utils.cpp
-        src/ast_views.cpp src/ast_views.hpp)
+	src/ast_views.cpp
+	src/ast_views.hpp)
 
 add_executable(
 		parseTest
@@ -63,7 +64,7 @@ add_executable(
 )
 
 set(USER_HOME $ENV{HOME})
-set(RANGES_INCLUDE "${USER_HOME}/work/lib/range-v3/include")
+set(RANGES_INCLUDE "${USER_HOME}/work/3d/range-v3/include")
 target_include_directories(ktn-cpp PUBLIC ${RANGES_INCLUDE})
 
 target_link_libraries(ktn-cpp ${CLANG_LIBS})
@@ -78,8 +79,5 @@ add_executable(
 		h0_test
 		sample/h0.cpp
 )
-add_executable(
-		vector
-		vector.cpp
-)
+
 target_compile_definitions(h0_test PUBLIC "-DMAIN")

@@ -2,18 +2,8 @@ if (NOT CLANG_ROOT)
   set(CLANG_ROOT $ENV{CLANG_ROOT})
 endif ()
 
-#set(CMAKE_CPP_COMPILER "/Volumes/vdi/work/src/llvm-apple/clang-llvm-9.0.0-darwin-macos-DEBUG/bin/clang++")
-#set(CXX "/Volumes/vdi/work/src/llvm-apple/clang-llvm-9.0.0-darwin-macos-DEBUG/bin/clang++")
-set(CXX "/opt/llvm/bin/clang++")
-#set(CMAKE_CPP_COMPILER "/Volumes/vdi/.konan/dependencies/clang-llvm-apple-8.0.0-darwin-macos/bin/clang++")
-
-set(LLVM_CONFIG "/opt/llvm-12/bin/llvm-config")
-#set(LLVM_CONFIG "/opt/llvm/bin/llvm-config")
-#set(LLVM_CONFIG "/Volumes/vdi/.konan/dependencies/clang-llvm-apple-8.0.0-darwin-macos/bin/llvm-config")
-#set(LLVM_CONFIG "/opt/llvm_9/bin/llvm-config")
-#set(LLVM_CONFIG "/Volumes/vdi/work/src/llvm-project/llvm/_build/bin/llvm-config")
-#set(LLVM_CONFIG "/Volumes/vdi/work/src/llvm-project/_build_all/bin/llvm-config")
-#set(LLVM_CONFIG "/usr/local/opt/llvm/bin/llvm-config")  # don't work
+# instead, ln -s llvm-config to the standard PATH
+#set(LLVM_CONFIG "/opt/llvm-12/bin/llvm-config")
 
 if (NOT LLVM_CONFIG)
   set(LLVM_CONFIG $ENV{LLVM_CONFIG})
