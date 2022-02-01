@@ -74,15 +74,15 @@ Config::Config(int argc, char **argv) {
 	files = opts["input"].as<std::vector<std::string>>();
 
 	parse_options = opts["parse-options"].as<std::vector<std::string>>();
-	parse_options.insert(cend(parse_options), {"-isystem"
-			//	, "/Volumes/vdi/.konan/dependencies/clang-llvm-apple-8.0.0-darwin-macos/lib/clang/8.0.0/include"
-				, "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"
-				, "-B/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
-				, "-fno-stack-protector"
-				, "--sysroot=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk"
-				, "-mmacosx-version-min=10.11"
-				, "-I/Library/Developer/CommandLineTools/usr/lib/clang/10.0.1/include/"
-				}
+	parse_options.insert(cend(parse_options), {
+//				"-isystem=/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1"
+//				"-isystem /opt/llvm-13/include/c++/v1"
+//                "-stdlib++-isystem /opt/llvm-13/include/c++/v1"
+//				, "-B/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+				 "--sysroot=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.0.sdk"
+				, "-I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include"
+				, "-I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/13.0.0/include"
+             }
 	);
 
 	if (opts.count("include")) {
@@ -93,6 +93,7 @@ Config::Config(int argc, char **argv) {
 	log_trace << "files:\n    " << joinToString(files, "\n    ");
 	log_trace << "parse_options:\n    " << joinToString(parse_options, "\n    ");
 }
+
 
 int main(int argc, char **argv)
 {
@@ -109,7 +110,11 @@ int main(int argc, char **argv)
 	    std::cerr << "error parsing options: " << e.what() << std::endl;
 	    exit(131);
     } catch (const std::exception& e) {
-	    log_fatal << "General exception " << e.what();
+		const auto& err = e.what();
+		if (err && err[0])
+			log_fatal << err;
+	   else
+		   log_fatal << "General exception";
 	    exit(130);
     } catch (...) {
 	    log_fatal << "Unknown exception";

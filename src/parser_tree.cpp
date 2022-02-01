@@ -37,7 +37,7 @@ CXTranslationUnit parse(
 			nullptr, 0,
 			CXTranslationUnit_None);
 	if (unit == nullptr) {
-		cerr << "Unable to parse translation unit. Quitting." << endl;
+		log_fatal << "Unable to parse translation unit. Quitting." << endl;
 		exit(-1);
 	}
 
@@ -727,8 +727,17 @@ CXChildVisitResult Visitor::typesVisitor_(CXCursor c, Container& parent)
 //	assert(client_data);
 	const XCursor& cursor(c);
 	IncrIndent _indent [[maybe_unused]];
-//	cerr << _indent.get() << " " << cursor.spelling() << " : " << cursor.kindS() << endl;
+	cerr << _indent.get() << " " << cursor.spelling() << " : " << cursor.kindS() << " type=" << cursor.typeName() << "." << cursor.typeKindS() << endl;
 	if (verbose) TraceX(cursor);
+
+	if (clang_isReference(cursor.kind())) {
+		XCursor ref = clang_getCursorReferenced(cursor);
+		IncrIndent _indent [[maybe_unused]];
+		cerr << _indent.get() << " " << ref.spelling() << " : " << ref.kindS() << " type=" << ref.typeName()
+		     << endl;
+		visitChildren(ref, &parent);
+	}
+
 //	Container& parent(*reinterpret_cast<Container*>(client_data));
 
 //	XCursor semanticParent = clang_getCursorSemanticParent(cursor); // Field need this to calculate offset
@@ -762,6 +771,7 @@ CXChildVisitResult Visitor::typesVisitor_(CXCursor c, Container& parent)
 		case CXCursor_StructDecl:
 		case CXCursor_UnionDecl: {
 			TraceX("Class/Struct/UnionDecl", clang_Cursor_isAnonymous(cursor), cursor.spelling(), cursor.type(), parent);
+			TraceX(cursor.typeKindS(), cursor.typeName());
 			if (Struct* x = Struct::registry.getOrAdd(cursor.data(), &parent)) {
 //			if (auto x = new Struct(cursor.data(), parent)) {
 				visitChildren(cursor, x);
@@ -791,15 +801,16 @@ CXChildVisitResult Visitor::typesVisitor_(CXCursor c, Container& parent)
 
 		case CXCursor_CXXMethod:
 			if (auto x = new CXXMethod(cursor, &parent)) {
-//				visitChildren(cursor, x);
+				visitChildren(cursor, x);
 				if (!x->name().starts_with("__"sv))
 				parent.add(x);
 			}
 			break;
 
 		case CXCursor_FunctionDecl:
+			TraceX("FunctionDecl", cursor.spelling(), cursor.type(), cursor.typeKindS(), cursor.typeName());
 			if (auto x = new Function(cursor, &parent)) {
-//				visitChildren(cursor, x);
+				visitChildren(cursor, x);
 				if (!x->name().starts_with("__"sv))
 				parent.add(x);
 			}
@@ -844,15 +855,34 @@ CXChildVisitResult Visitor::typesVisitor_(CXCursor c, Container& parent)
 			}
 			break;
 
+		case CXCursor_CallExpr:
+			if (auto* x = new Node(cursor.data(), &parent)) {
+				visitChildren(cursor, x);
+			}
+			break;
+
+		case CXCursor_DeclRefExpr:
+			if (auto* x = new Node(cursor.data(), &parent)) {
+				XCursor ref = clang_getCursorReferenced(cursor);
+				IncrIndent _indent [[maybe_unused]];
+				cerr << _indent.get() << " " << ref.spelling() << " : " << ref.kindS() << " type=" << ref.typeName() << endl;
+				visitChildren(ref, x);
+			}
+			break;
+
 		default:
-			if (Node* node = new Node(cursor.data(), &parent)) {
-				log_trace << "default> " << cursor;
+			log_trace << "default> " << cursor;
+			if (Node* x = new Node(cursor.data(), &parent)) {
 //				TraceX("default", cursor.data().cursorKindS(),  *node);
+//				visitChildren(cursor, x);
 			}
 			return CXChildVisit_Recurse;
 	}
 	return CXChildVisit_Continue;
 }
+
+#include <filesystem>
+namespace fs = std::filesystem;
 
 
 void  parseTypes(
@@ -860,8 +890,9 @@ void  parseTypes(
 		const Args& args //, const Options&	 options
 		)
 {
-	for (const auto& file : files)
-	{
+	for (const auto& file : files) {
+		if (!fs::exists(file)) throw runtime_error("File not found: " + file);
+
 		CXIndex index =	 clang_createIndex(0, 0);
 		CXTranslationUnit unit = parse(index, file, args);
 
